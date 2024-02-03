@@ -1,0 +1,7 @@
+data_root:
+  data_root_folder: "/home/vectr/Documents"
+  valid_scan_folder: "/home/vectr/Documents"
+  gt_folder: "/home/vectr/Documents"
+
+test_root:
+  data_root_folder: "/home/vectr/Documents"
