@@ -8,40 +8,29 @@ import numpy as np
 
 
 class Params:
+    """
+    Loads hyperparameters from a json file.
+    """
     def __init__(self, json_path):
         with open(json_path) as f:
             params = json.load(f)
             self.__dict__.update(params)
 
     def save(self, json_path):
+        # save parameters to json file
         with open(json_path, 'w') as f:
             json.dump(self.__dict__, f, indent=4)
 
     def update(self, json_path):
-        """update parameters from json file"""
+        # update parameters from json file
         with open(json_path) as f:
             params = json.load(f)
             self.__dict__.update(params)
 
     @property
     def dict(self):
+        # Access Params instance by `params.dict['learning_rate']
         return self.__dict__
-
-
-def load_files(file_path):
-    pass
-
-
-def load_images(file_path):
-    pass
-
-
-def load_descriptors(file_path):
-    pass
-
-
-def load_labels(file_path):
-    pass
 
 
 def save_dict_to_json(d, json_path):
@@ -107,6 +96,8 @@ def set_logger(log_path):
 
     Args:
         log_path: (string) where to log
+    Returns:
+        the logger
     """
     logger = logging.getLogger(__name__)
     logger.setLevel(logging.INFO)
