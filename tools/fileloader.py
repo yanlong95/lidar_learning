@@ -2,7 +2,7 @@ import os
 import numpy as np
 import torch
 import cv2
-from matplotlib import pyplot as plt
+import open3d as o3d
 
 
 def load_files(folder_path):
@@ -45,20 +45,46 @@ def load_poses(file_path):
         poses = np.load(full_path, allow_pickle=True)['arr_0'].astype(np.float32)
         # poses = np.load(full_path, allow_pickle=True)['poses'].astype(np.float32)
     else:
-        raise TypeError(f'File {full_path} cannot read!')
+        raise TypeError(f'Positions file {full_path} cannot be read!')
     return poses
 
 
 def load_descriptors(file_path):
+    """
+    Load the descriptors file (.txt or .npy).
+
+    Args:
+        file_path: (string) the path of the file containing the descriptors
+    Returns:
+        descriptors: (np.array) the descriptors in shape (n, 256).
+    """
     full_path = os.path.expanduser(file_path)
     if not os.path.exists(full_path):
         raise FileNotFoundError(f'File {full_path} does not exist!')
 
+    _, ext = os.path.splitext(full_path)
+    if ext == '.txt':
+        descriptors = np.loadtxt(file_path, delimiter=' ', dtype=np.float32)
+    elif ext == '.npy':
+        descriptors = np.load(full_path, allow_pickle=True).astype(np.float32)
+    else:
+        raise TypeError(f'Descriptors file {full_path} cannot be read!')
 
-def load_labels(file_path):
-    full_path = os.path.expanduser(file_path)
-    if not os.path.exists(full_path):
-        raise FileNotFoundError(f'File {full_path} does not exist!')
+    return descriptors
+
+
+def read_pc(pc_path):
+    """
+    Read a single point cloud in numpy form.
+
+    Args:
+        pc_path: (string) the path of the point cloud file (pcd file).
+    Returns:
+        points: (numpy array) points in shape (n, 3)
+    """
+    pc = o3d.io.read_point_cloud(pc_path)
+    points = np.asarray(pc.points, dtype=np.float32)
+    return points
 
 
 def read_image(image_path):
@@ -68,7 +94,7 @@ def read_image(image_path):
     Args:
         image_path: (string) the path of the image
     Returns:
-        depth_data: (tensor) image tensor in shape [1, 1, H, W]
+        depth_data: (tensor) image tensor in shape (1, 1, H, W)
     """
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
     image = cv2.imread(image_path, cv2.IMREAD_GRAYSCALE)                    # in grayscale, shape (H, W)
@@ -82,5 +108,7 @@ if __name__ == '__main__':
     file_path = '/media/vectr/T9/Dataset/overlap_transformer/npy_files/bomb_shelter'
     img_path = '/media/vectr/T9/Dataset/overlap_transformer/png_files/bomb_shelter/depth/000000.png'
     poses_path = '/media/vectr/T9/Dataset/overlap_transformer/poses/bomb_shelter/poses.txt'
-    load_poses(poses_path)
-
+    descriptors_path = '/media/vectr/T9/Dataset/overlap_transformer/descriptors/bomb_shelter/keyframe_descriptors.npy'
+    pc_path = '/media/vectr/T9/Dataset/overlap_transformer/pcd_files/bomb_shelter/1698379586.665777408.pcd'
+    p = read_pc(pc_path)
+    print(p.shape)
