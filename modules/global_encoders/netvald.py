@@ -1,5 +1,5 @@
 """
-Code taken from https://github.com/cattaneod/PointNetVlad-Pytorch/blob/master/models/PointNetVlad.py with trivial
+Code taken from https://github.com/cattaneod/PointNetVlad-Pytorch/blob/master/models/PointNetVlad.py with a trivial
 modifications.
 """
 
