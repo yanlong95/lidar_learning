@@ -1,6 +1,6 @@
 """
 Code taken from https://github.com/cattaneod/PointNetVlad-Pytorch/blob/master/models/PointNetVlad.py with trivial
-modifications
+modifications.
 """
 
 import torch
