@@ -98,7 +98,7 @@ class NetVLADLoupe(nn.Module):
 
 class GatingContext(nn.Module):
     """
-    A filter applies before the output of netvlad descriptor.
+    A filter applies before the output of NetVlad descriptor.
     """
 
     def __init__(self, dim, add_batch_norm=True):
