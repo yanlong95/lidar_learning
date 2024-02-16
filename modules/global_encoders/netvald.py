@@ -142,7 +142,7 @@ if __name__ == '__main__':
                             is_training=True)
     # input  (bs, 1024, 900, 1)
     torch.manual_seed(0)
-    input1 = F.normalize(torch.randn((1, 1024, 900, 1)), dim=1)
+    input1 = F.normalize(torch.randn((3, 1024, 900, 1)), dim=1)
     input2 = input1.clone()
     input2 = input2[:, :, torch.randperm(input2.shape[2]), :]
     diff = torch.norm(input2 - input1)
