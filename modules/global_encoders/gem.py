@@ -67,7 +67,7 @@ class GeM(nn.Module):
 
 
 if __name__ == '__main__':
-    gem = GeM(feature_size=1024, output_size=256, p=3, eps=1e-6, share_p=True)
+    gem = GeM(feature_size=1024, output_size=256, p=3, eps=1e-6)
 
     torch.manual_seed(123)
     input1 = F.normalize(torch.randn((3, 1024, 900, 1)), dim=1)
