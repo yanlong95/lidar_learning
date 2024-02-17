@@ -38,8 +38,8 @@ def save_dict_to_json(d, json_path):
     save dict to json file
 
     Args:
-        d: dictionary to save
-        json_path: path to json file
+        d: (dict) dictionary to save
+        json_path: (string) path to json file
     """
     with open(json_path, 'w') as f:
         d = {k: float(v) for k, v in d.items()}

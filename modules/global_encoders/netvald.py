@@ -12,6 +12,14 @@ from math import sqrt
 class NetVLADLoupe(nn.Module):
     """
     The NetVLAD neural network, details check the paper NetVLAD and paper PointNetVLAD.
+
+    Args:
+        feature_size: (int) The size of the feature layers (channels).
+        max_samples: (int) The length of a single descriptor (width).
+        cluster_size: (int) The size of the clusters.
+        output_dim: (int) The dimension of the output vector.
+        gating: (bool) Whether to use gatingContext.
+        add_batch_norm: (bool) Whether to add batch normalization
     """
     def __init__(self, feature_size, max_samples, cluster_size, output_dim,
                  gating=True, add_batch_norm=True, is_training=True):
