@@ -68,6 +68,21 @@ def triplet_loss(q_vec, pos_vecs, neg_vecs, margin, use_min=False, lazy=False, i
 
 def quadruplet_loss(q_vec, pos_vecs, neg_vecs, neg_vec_rand, margin1, margin2,
                     use_min=False, lazy=False, ignore_zero_loss=False):
+    """
+    Calculate the (lazy) quadruplet loss for a query vector and a positive vector set and a negative vector set.
+
+    Args:
+        q_vec: (torch.Tensor) the query vector in shape (1, q_size).
+        pos_vecs: (torch.Tensor) the query positive vector set in shape (num_pos, q_size).
+        neg_vecs: (torch.Tensor) the query negative vector set in shape (num_neg, q_size).
+        neg_vec_rand: (torch.Tensor) a random negative vector from neg_vecs set to prevent the gap between neg_max and
+                                    the other samples.
+        margin1: (float) the margin parameters for query triplet loss.
+        margin2: (float) the margin parameters for random negative pair triplet loss.
+        use_min: (bool) decide to use the positive pair with max distance or min distance.
+        lazy: (bool) use lazy triplet loss ot not.
+        ignore_zero_loss: if count the 0 triplet loss pair when calculate the mean.
+    """
     # in case no positive pair
     if pos_vecs.shape[1] == 0:
         return -1
