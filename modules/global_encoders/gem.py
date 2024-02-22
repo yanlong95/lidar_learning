@@ -1,3 +1,7 @@
+"""
+Code taken from https://github.com/cattaneod/PointNetVlad-Pytorch/blob/master/models with trivial modifications.
+"""
+
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
