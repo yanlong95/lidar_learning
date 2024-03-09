@@ -49,6 +49,22 @@ def load_poses(file_path):
     return poses
 
 
+def load_xyz_rot(file_path):
+    """
+        Load the xyz positions and rotations from the file (.txt or .npz).
+
+        Args:
+            file_path: (string) the path of the file containing the positions
+        Returns:
+            xyz: (np.array) the positions in shape (n, 3, 1).
+            rot: (np.array) the rotation matrix in shape (n, 3, 3)
+        """
+    poses = load_poses(file_path)
+    xyz = poses[:, :, -1]
+    rot = poses[:, :, :3]
+    return xyz, rot
+
+
 def load_descriptors(file_path):
     """
     Load the descriptors file (.txt or .npy).

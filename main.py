@@ -14,7 +14,7 @@ parser.add_argument('--restore_file', default=None, help='Optional, name of the 
 
 if __name__ == "__main__":
     # load paths in yaml
-    config_path = './config/config.yml'
+    config_path = 'configs/config.yml'
     config = yaml.safe_load(open(config_path))
     data_root = config['data_root']['data_root_folder']
 
