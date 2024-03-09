@@ -1,7 +1,7 @@
 data_root:
-  poses: "/media/vectr/T9/Dataset/overlap_transformer/poses/"
-  descriptors: "/media/vectr/T9/Dataset/overlap_transformer/descriptors"
-  keyframes: "/media/vectr/T9/Dataset/overlap_transformer/keyframes"
+  poses: "/Volumes/T9/Dataset/overlap_transformer/poses/"
+  descriptors: "/Volumes/T9/Dataset/overlap_transformer/descriptors"
+  keyframes: "/Volumes/T9/Dataset/overlap_transformer/keyframes"
 
 seqs: [ "bomb_shelter", "botanical_garden", "bruin_plaza", "court_of_sciences", "dickson_court", "geo_loop",
         "kerckhoff", "luskin", "royce_hall", "sculpture_garden" ]
