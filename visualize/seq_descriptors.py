@@ -18,21 +18,31 @@ def stack_descriptors(descriptors, keyframe_indices, n=5):
     # sequential descriptor stack with shape (num-n+1, length*n), each row is a new descriptor in (t, t-1, t-2 ...)
     descriptors_seq = descriptors_stack[n-1:num, :]
 
-    # we ignore the first keyframe since it is always index 0 (cannot find in the sequence).
-    indices = keyframe_indices[1:]
-    indices = indices - n + 1
-    descriptors_kf_seq = descriptors_seq[indices, :]
+    # we ignore the first keyframe since it is always index 0 (cannot find in the sequence), instead we use the n_th
+    # frame as the first keyframe
+
+    # print(keyframe_indices)
+    keyframe_indices = keyframe_indices - n + 1
+    keyframe_indices[keyframe_indices < 0] = 0
+    # print(keyframe_indices)
+    descriptors_kf_seq = descriptors_seq[keyframe_indices, :]
 
     return descriptors_seq, descriptors_kf_seq
 
 
 # find the indices of keyframes
-def find_keyframe_indices(poses, poses_kf):
+def find_keyframe_indices(poses, poses_kf, n=5):
     index_poses = faiss.IndexFlatL2(xyz.shape[1])
     index_poses.add(poses)
     distances, ids = index_poses.search(poses_kf, 1)
     keyframe_indies = np.squeeze(ids)
-    return keyframe_indies
+
+    # if any index is smaller than n - 1, we need to set the index and position as the n_th frame
+    invalid_indies = keyframe_indies < n - 1        # keyframe smaller than the sequence number
+    keyframe_indies[invalid_indies] = n - 1
+    poses_kf[invalid_indies, :] = poses[n - 1, :]
+
+    return keyframe_indies, poses_kf
 
 
 if __name__ == '__main__':
@@ -56,12 +66,17 @@ if __name__ == '__main__':
     descriptors = load_descriptors(descriptors_path)
     descriptors_kf = load_descriptors(keyframe_descriptors_path)
 
-    keyframe_indices = find_keyframe_indices(xyz, xyz_kf)
-    descriptors_seq, descriptors_kf_seq = stack_descriptors(descriptors, keyframe_indices)
+    kf_indices, xyz_kf = find_keyframe_indices(xyz, xyz_kf)
+    descriptors_seq, descriptors_kf_seq = stack_descriptors(descriptors, kf_indices)
 
     test_selection = 10
     # select 1 sample per test_selection samples, reduce the test size
     test_frame_descriptors = descriptors_seq[::test_selection]
 
+    # regenerate the keyframe poses file (!!! has bug here, rotation not fix !!!)
+    keyframe_poses_copy = np.loadtxt(keyframe_poses_path, delimiter=' ', dtype=np.float32)
+    keyframe_poses_copy[0, [3, 7, 11]] = xyz_kf[0]
+
     np.save(os.path.join(descriptors_folder_path, seq, 'keyframe_seq_descriptors'), descriptors_kf_seq)
     np.save(os.path.join(descriptors_folder_path, seq, 'test_frame_seq_descriptors'), test_frame_descriptors)
+    np.savetxt(os.path.join(keyframes_folder_path, seq, 'poses/poses_kf_seq.txt'), keyframe_poses_copy)
