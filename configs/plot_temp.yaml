@@ -1,5 +1,4 @@
 data_root:
-  root: "/media/vectr/T9/Dataset/overlap_transformer"
   poses: "/media/vectr/T9/Dataset/overlap_transformer/poses/"
   descriptors: "/media/vectr/T9/Dataset/overlap_transformer/descriptors"
   keyframes: "/media/vectr/T9/Dataset/overlap_transformer/keyframes"
