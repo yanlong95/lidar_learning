@@ -50,4 +50,5 @@ if __name__ == '__main__':
     pc2_tree = kd_tree(pc2)
 
     idx = search_nearest_points(pc1_tree, pc1.points[1000], 100)
+    print(type(idx))
     print(idx)
