@@ -1,7 +1,8 @@
 data_root:
-  data_root_folder: "/home/vectr/Documents"
-  valid_scan_folder: "/home/vectr/Documents"
-  gt_folder: "/home/vectr/Documents"
+  pcd_files: "/media/vectr/T9/Dataset/overlap_transformer/pcd_files"
+  npy_files: "/media/vectr/T9/Dataset/overlap_transformer/npy_files"
+  poses: "/media/vectr/T9/Dataset/overlap_transformer/poses"
+  weights: "/media/vectr/T9/Dataset/overlap_transformer/weights"
 
 test_root:
-  data_root_folder: "/home/vectr/Documents"
+  data_root_folder: "/media/vectr/T9/Dataset/overlap_transformer"

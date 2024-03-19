@@ -27,7 +27,7 @@ def load_files(folder_path):
 
 def load_poses(file_path):
     """
-    Load the positions file (.txt or .npz).
+    Load the positions file (.txt, .npz or .npy).
 
     Args:
         file_path: (string) the path of the file containing the positions
@@ -44,6 +44,8 @@ def load_poses(file_path):
     elif ext == '.npz':
         poses = np.load(full_path, allow_pickle=True)['arr_0'].astype(np.float32)
         # poses = np.load(full_path, allow_pickle=True)['poses'].astype(np.float32)
+    elif ext == '.npy':
+        poses = np.load(full_path, allow_pickle=True).astype(np.float32)
     else:
         raise TypeError(f'Positions file {full_path} cannot be read!')
     return poses
@@ -89,7 +91,7 @@ def load_descriptors(file_path):
     return descriptors
 
 
-def read_pc(pc_path):
+def read_pc(pc_path, format='numpy'):
     """
     Read a single point cloud in numpy form.
 
@@ -99,8 +101,10 @@ def read_pc(pc_path):
         points: (numpy array) points in shape (n, 3)
     """
     pc = o3d.io.read_point_cloud(pc_path)
-    points = np.asarray(pc.points, dtype=np.float32)
-    return points
+    if format == 'numpy':
+        pc = np.asarray(pc.points, dtype=np.float32)
+
+    return pc
 
 
 def read_image(image_path):
