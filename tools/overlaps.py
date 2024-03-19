@@ -46,6 +46,8 @@ if __name__ == '__main__':
     pc1 = read_pc(pcd_files_path[scan1], format='o3d')
     pc2 = read_pc(pcd_files_path[scan2], format='o3d')
 
+    o3d.visualization.draw_geometries([pc1])
+
     pc1_tree = kd_tree(pc1)
     pc2_tree = kd_tree(pc2)
 
