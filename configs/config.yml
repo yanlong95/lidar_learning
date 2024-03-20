@@ -3,6 +3,7 @@ data_root:
   npy_files: "/media/vectr/T9/Dataset/overlap_transformer/npy_files"
   poses: "/media/vectr/T9/Dataset/overlap_transformer/poses"
   weights: "/media/vectr/T9/Dataset/overlap_transformer/weights"
+  gt_overlap: "/media/vectr/T9/Dataset/overlap_transformer/gt_overlap"
 
 test_root:
   data_root_folder: "/media/vectr/T9/Dataset/overlap_transformer"
