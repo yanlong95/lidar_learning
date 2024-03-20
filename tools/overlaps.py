@@ -158,5 +158,6 @@ if __name__ == '__main__':
     overlaps_matrix = calculate_overlaps_matrix(pcs, kd_trees, params)
     np.save(os.path.join(config['data_root']['gt_overlap'], 'overlaps_matrix.npy'), overlaps_matrix)
 
+
     # calculate_overlap_preprocess(poses, pcd_files_path, params)
 
