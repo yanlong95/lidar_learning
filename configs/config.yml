@@ -1,9 +1,16 @@
 data_root:
-  pcd_files: "/media/vectr/T9/Dataset/overlap_transformer/pcd_files"
-  npy_files: "/media/vectr/T9/Dataset/overlap_transformer/npy_files"
-  poses: "/media/vectr/T9/Dataset/overlap_transformer/poses"
-  weights: "/media/vectr/T9/Dataset/overlap_transformer/weights"
+  descriptors: "/media/vectr/T9/Dataset/overlap_transformer/descriptors"
   gt_overlap: "/media/vectr/T9/Dataset/overlap_transformer/gt_overlap"
+  keyframes: "/media/vectr/T9/Dataset/overlap_transformer/keyframes"
+  npy_files: "/media/vectr/T9/Dataset/overlap_transformer/npy_files"
+  pcd_files: "/media/vectr/T9/Dataset/overlap_transformer/pcd_files"
+  png_files: "/media/vectr/T9/Dataset/overlap_transformer/png_files"
+  poses: "/media/vectr/T9/Dataset/overlap_transformer/poses"
+  test: "/media/vectr/T9/Dataset/overlap_transformer/test"
+  weights: "/media/vectr/T9/Dataset/overlap_transformer/weights"
+
+seqs: [ "bomb_shelter", "botanical_garden", "bruin_plaza", "court_of_sciences", "dickson_court", "geo_loop",
+        "kerckhoff", "luskin", "royce_hall", "sculpture_garden" ]
 
 test_root:
   data_root_folder: "/media/vectr/T9/Dataset/overlap_transformer"

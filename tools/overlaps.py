@@ -30,6 +30,8 @@ def remove_outliers(pc, params):
     Args:
         pc: (o3d.geometry.PointCloud) o3d point cloud.
         params: (dict) parameters for lidar and odom.
+    Returns:
+        pc: (o3d.geometry.PointCloud) filtered o3d point.
     """
     points = np.asarray(pc.points)
     distances = np.linalg.norm(points, axis=1)
@@ -46,6 +48,8 @@ def align_points(pc, pose):
     Args:
         pc: (o3d.geometry.PointCloud) o3d point cloud.
         pose: (numpy.array) a (3, 4) numpy array representing the 3 * 3 rotation matrix and 3 * 1 translation vector.
+    Returns:
+        pc_map: (o3d.geometry.PointCloud) aligned point cloud.
     """
     pc_pose = np.vstack((pose, [0.0, 0.0, 0.0, 1.0]))
     pc_map = pc.transform(pc_pose)
@@ -58,6 +62,8 @@ def kd_tree(pc):
 
     Args:
         pc: (o3d.geometry.PointCloud) o3d point cloud.
+    Returns:
+        pc_tree: (o3d.geometry.KDTreeFlann) a KDTree of input point cloud.
     """
     pc_tree = o3d.geometry.KDTreeFlann(pc)
     return pc_tree
@@ -71,6 +77,10 @@ def search_nearest_points(pc_tree, point, num_neighbors=1):
         pc_tree: (o3d.geometry.KDTreeFlann) o3d point cloud kdtree.
         point: (numpy.array) a point (xyz) in numpy array.
         num_neighbors: (int) the number of closest neighbors.
+    Returns:
+        k: (int) numbers.
+        idx: (o3d.utility.IntVector) index of the closest points.
+        dists: (o3d.utility.DoubleVector) distances to the closest points.
     """
     [k, idx, dists] = pc_tree.search_knn_vector_3d(point, num_neighbors)   # k: numbers, idx: indices, dists: distances
     return k, idx, dists
@@ -84,6 +94,10 @@ def search_radius_points(pc_tree, point, radius):
         pc_tree: (o3d.geometry.KDTreeFlann) o3d point cloud kdtree.
         point: (numpy.array) a point (xyz) in numpy array.
         radius: (double) radius.
+    Returns:
+        k: (int) numbers.
+        idx: (o3d.utility.IntVector) index of the points in radius.
+        dists: (o3d.utility.DoubleVector) distances to the points in radius.
     """
     [k, idx, dists] = pc_tree.search_radius_vector_3d(point, radius)
     return k, idx, dists
@@ -98,6 +112,8 @@ def calculate_overlap(scan1_kd_tree, num_scan1_pts, scan2, params):
         num_scan1_pts: (int) number of points in scan1_kd_tree.
         scan2: (o3d.geometry.PointCloud) query point cloud scan.
         params: (dict) parameters for lidar and odom.
+    Returns:
+        intersection_over_union: (double) the overlap ratio (0 ~ 1).
     """
     scan2_pts = scan2.points
     num_scan2_pts = len(scan2_pts)
@@ -124,6 +140,9 @@ def calculate_overlaps_preprocess(poses, pcd_files_path, params):
         pose: (numpy.array) a (3, 4) numpy array representing the 3 * 3 rotation matrix and 3 * 1 translation vector.
         pcd_files_path: (list of string) the paths of pcd files.
         params: (dict) parameters for lidar and odom.
+    Returns:
+        point_clouds: (list of o3d.geometry.PointCloud) list of filtered point clouds.
+        point_clouds_kd: (list of o3d.geometry.KDTreeFlann) list of kd tree.
     """
     point_clouds = []
     point_clouds_kd = []
@@ -148,6 +167,8 @@ def calculate_overlaps_matrix(pcs, kd_trees, params):
         pcs: (list of o3d.geometry.PointCloud) the list of o3d point cloud.
         kd_trees: (list of o3d.geometry.KDTreeFlann) the list of kd trees of pcs.
         params: (dict) parameters for lidar and odom.
+    Returns:
+        overlaps_matrix: (numpy.array) the overlap matrix for each pair of point clouds.
     """
     overlaps_matrix = np.zeros((len(pcs), len(pcs)))
     for i in tqdm(range(len(pcs))):
