@@ -1,3 +1,9 @@
+"""
+File to compute the overlaps between scans of a sequence of point clouds. The overlap is defined as ratio between the
+intersection over union of two point clouds (in 3d space).
+
+Note, due to the size of the sequence, the computation speed could be very slow.
+"""
 import os
 import numpy as np
 import psutil
@@ -11,10 +17,20 @@ from tools.fileloader import load_files, load_poses, read_pc
 
 
 def threads_count():
+    """
+    Compute the number of threads.
+    """
     return psutil.cpu_count()
 
 
 def remove_outliers(pc, params):
+    """
+    Remove outliers of a point cloud. The outliers are considered the points outside the maximum range or 0.
+
+    Args:
+        pc: (o3d.geometry.PointCloud) o3d point cloud.
+        params: (dict) parameters for lidar and odom.
+    """
     points = np.asarray(pc.points)
     distances = np.linalg.norm(points, axis=1)
     pc.points = o3d.utility.Vector3dVector(points[(distances >= params['lidar']['eps']) &
@@ -23,23 +39,52 @@ def remove_outliers(pc, params):
     return pc
 
 
-def align_points(scan, pose):
-    scan_pose = np.vstack((pose, [0.0, 0.0, 0.0, 1.0]))
-    scan_map = scan.transform(scan_pose)
-    return scan_map
+def align_points(pc, pose):
+    """
+    Align the point cloud to original point.
+
+    Args:
+        pc: (o3d.geometry.PointCloud) o3d point cloud.
+        pose: (numpy.array) a (3, 4) numpy array representing the 3 * 3 rotation matrix and 3 * 1 translation vector.
+    """
+    pc_pose = np.vstack((pose, [0.0, 0.0, 0.0, 1.0]))
+    pc_map = pc.transform(pc_pose)
+    return pc_map
 
 
 def kd_tree(pc):
+    """
+    Build a kdtree for a point cloud.
+
+    Args:
+        pc: (o3d.geometry.PointCloud) o3d point cloud.
+    """
     pc_tree = o3d.geometry.KDTreeFlann(pc)
     return pc_tree
 
 
-def search_nearest_points(pc_tree, point, num_neighbors):
+def search_nearest_points(pc_tree, point, num_neighbors=1):
+    """
+    Search the closest point(s) of a given point and kdtree.
+
+    Args:
+        pc_tree: (o3d.geometry.KDTreeFlann) o3d point cloud kdtree.
+        point: (numpy.array) a point (xyz) in numpy array.
+        num_neighbors: (int) the number of closest neighbors.
+    """
     [k, idx, dists] = pc_tree.search_knn_vector_3d(point, num_neighbors)   # k: numbers, idx: indices, dists: distances
     return k, idx, dists
 
 
 def search_radius_points(pc_tree, point, radius):
+    """
+    Search the points within a radius of a given point and kdtree.
+
+    Args:
+        pc_tree: (o3d.geometry.KDTreeFlann) o3d point cloud kdtree.
+        point: (numpy.array) a point (xyz) in numpy array.
+        radius: (double) radius.
+    """
     [k, idx, dists] = pc_tree.search_radius_vector_3d(point, radius)
     return k, idx, dists
 
@@ -64,6 +109,7 @@ def calculate_overlap(scan1_kd_tree, num_scan1_pts, scan2, params):
         if dist[0] ** 2 <= params['odom']['maxCorrespondenceDistance']:
             num_correspondences += 1
 
+    # overlap define as intersection over union of 2 point clouds
     overlap_pts = num_correspondences
     total_pts = num_scan1_pts + num_scan2_pts - overlap_pts
     intersection_over_union = overlap_pts / total_pts
@@ -71,6 +117,14 @@ def calculate_overlap(scan1_kd_tree, num_scan1_pts, scan2, params):
 
 
 def calculate_overlaps_preprocess(poses, pcd_files_path, params):
+    """
+    Preprocess the raw point cloud. Remove the outliers -> align the pose -> build and save kdtree and new point cloud.
+
+    Args:
+        pose: (numpy.array) a (3, 4) numpy array representing the 3 * 3 rotation matrix and 3 * 1 translation vector.
+        pcd_files_path: (list of string) the paths of pcd files.
+        params: (dict) parameters for lidar and odom.
+    """
     point_clouds = []
     point_clouds_kd = []
     for i in tqdm(range(len(pcd_files_path))):
@@ -87,6 +141,14 @@ def calculate_overlaps_preprocess(poses, pcd_files_path, params):
 
 
 def calculate_overlaps_matrix(pcs, kd_trees, params):
+    """
+    Calculate the overlaps between all the scans and save the results in a symmetric matrix.
+
+    Args:
+        pcs: (list of o3d.geometry.PointCloud) the list of o3d point cloud.
+        kd_trees: (list of o3d.geometry.KDTreeFlann) the list of kd trees of pcs.
+        params: (dict) parameters for lidar and odom.
+    """
     overlaps_matrix = np.zeros((len(pcs), len(pcs)))
     for i in tqdm(range(len(pcs))):
         kd_tree_i = kd_trees[i]
@@ -102,18 +164,29 @@ def calculate_overlaps_matrix(pcs, kd_trees, params):
 
 
 if __name__ == '__main__':
+    # load configuration and parameters
     config_path = '/home/vectr/PycharmProjects/lidar_learning/configs/config.yml'
     params_path = '/home/vectr/PycharmProjects/lidar_learning/configs/parameters.yml'
 
     config = yaml.safe_load(open(config_path))
     params = yaml.safe_load(open(params_path))
 
+    # load poses and pcd files
     seq = 'sculpture_garden'
     poses_path = os.path.join(config['data_root']['poses'], seq, 'poses.txt')
     pcd_folder_path = os.path.join(config['data_root']['pcd_files'], seq)
 
     poses = load_poses(poses_path)
     pcd_files_path = load_files(pcd_folder_path)
+
+    # remove outliers, align point clouds, build kdtrees
+    pcs, kd_trees = calculate_overlaps_preprocess(poses, pcd_files_path, params)
+
+    # calculate the overlaps
+    overlaps_matrix = calculate_overlaps_matrix(pcs, kd_trees, params)
+
+    # save overlaps result in a numpy array
+    np.save(os.path.join(config['data_root']['gt_overlap'], 'overlaps_matrix.npy'), overlaps_matrix)
 
     # scan1 = 910
     # scan2 = 1660
@@ -152,12 +225,3 @@ if __name__ == '__main__':
     # # calculate overlap between 2 point clouds
     # calculate_overlap(pc1, pc2, params)
     # calculate_overlap(pc2, pc3, params)
-
-    # temp
-    pcs, kd_trees = calculate_overlaps_preprocess(poses, pcd_files_path, params)
-    overlaps_matrix = calculate_overlaps_matrix(pcs, kd_trees, params)
-    np.save(os.path.join(config['data_root']['gt_overlap'], 'overlaps_matrix.npy'), overlaps_matrix)
-
-
-    # calculate_overlap_preprocess(poses, pcd_files_path, params)
-
