@@ -116,26 +116,26 @@ if __name__ == '__main__':
     parameters = yaml.safe_load(open(parameters_path))
 
     # choose sequence
-    seqs = config['seqs']
-    seq = seqs[0]
+    seqs = config['seqs']['all']
+    seq = seqs[9] # os0: 0, 5, 6, 7; os1: 1, 2, 3, 4, 8, 9
 
     # load point clouds path
     pcd_files_path = os.path.join(config['data_root']['pcd_files'], seq)
 
     # load the destination path
-    png_files_path = os.path.join(config['data_root']['png_files'], seq)
+    png_files_path = os.path.join(config['data_root']['png_files'], '1024', seq)
 
     # lidar parameters
     lidar_params = parameters['lidar']
 
     # projection parameters
     proj_H = 32
-    proj_W = 900
+    proj_W = 1024
 
     # generate range images
     gen_range_images(pcd_files_path, png_files_path, lidar_params, proj_H, proj_W)
 
     # view generated image
-    img = mpimg.imread(os.path.join(config['data_root']['png_files'], seq, '001800.png'))
+    img = mpimg.imread(os.path.join(png_files_path, '001800.png'))
     plt.imshow(img, cmap='viridis')
     plt.show()

@@ -193,7 +193,7 @@ if __name__ == '__main__':
     params = yaml.safe_load(open(params_path))
 
     # load poses and pcd files
-    seq = 'sculpture_garden'
+    seq = 'bomb_shelter'
     poses_path = os.path.join(config['data_root']['poses'], seq, 'poses.txt')
     pcd_folder_path = os.path.join(config['data_root']['pcd_files'], seq)
 

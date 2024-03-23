@@ -36,7 +36,7 @@ class GeM(nn.Module):
 
     def forward(self, x):
         """
-        feedforward pass of the NetVLAD neural network
+        feedforward pass of the GeM neural network
 
         Args:
             x: (torch.tensor) with dimension (batch_size, feature_size, local_descriptor_size, 1)

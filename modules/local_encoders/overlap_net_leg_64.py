@@ -30,17 +30,17 @@ class OverlapNetLeg(nn.Module):
         self.use_transformer = use_transformer
 
         # define layers input = (batch, feature, height, width), output = (batch, feature, 1, width)
-        self.conv1 = nn.Conv2d(channels, 16, kernel_size=(5, 1), stride=(1, 1), bias=False)               # 30
+        self.conv1 = nn.Conv2d(channels, 16, kernel_size=(5, 1), stride=(1, 1), bias=False)               # 60
         self.bn1 = norm_layer(16)
-        self.conv2 = nn.Conv2d(16, 32, kernel_size=(3, 1), stride=(2, 1), bias=False)           # 14
+        self.conv2 = nn.Conv2d(16, 32, kernel_size=(3, 1), stride=(2, 1), bias=False)           # 29
         self.bn2 = norm_layer(32)
-        self.conv3 = nn.Conv2d(32, 64, kernel_size=(3, 1), stride=(2, 1), bias=False)           # 6
+        self.conv3 = nn.Conv2d(32, 64, kernel_size=(3, 1), stride=(2, 1), bias=False)           # 14
         self.bn3 = norm_layer(64)
-        self.conv4 = nn.Conv2d(64, 64, kernel_size=(3, 1), stride=(2, 1), bias=False)           # 2
+        self.conv4 = nn.Conv2d(64, 64, kernel_size=(3, 1), stride=(2, 1), bias=False)           # 6
         self.bn4 = norm_layer(64)
-        self.conv5 = nn.Conv2d(64, 128, kernel_size=(2, 1), stride=(2, 1), bias=False)          # 1
+        self.conv5 = nn.Conv2d(64, 128, kernel_size=(2, 1), stride=(2, 1), bias=False)          # 3
         self.bn5 = norm_layer(128)
-        self.conv6 = nn.Conv2d(128, 128, kernel_size=(1, 1), stride=(2, 1), bias=False)         # 1
+        self.conv6 = nn.Conv2d(128, 128, kernel_size=(1, 1), stride=(2, 1), bias=False)         # 2
         self.bn6 = norm_layer(128)
         self.conv7 = nn.Conv2d(128, 128, kernel_size=(1, 1), stride=(2, 1), bias=False)         # 1
         self.bn7 = norm_layer(128)

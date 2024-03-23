@@ -95,7 +95,7 @@ class NetVLADLoupe(nn.Module):
         vlad = vlad.reshape(-1, self.feature_size * self.cluster_size)
         vlad = F.normalize(vlad, p=2, dim=1)
         vlad = vlad @ self.hidden_weights
-        vlad = self.bn2(vlad)
+        # vlad = self.bn2(vlad)     # overlaptransformer skip this line
 
         # apply gatingContext filter
         if self.gating:
@@ -145,12 +145,12 @@ class GatingContext(nn.Module):
 
 
 if __name__ == '__main__':
+    torch.manual_seed(0)
     net_vlad = NetVLADLoupe(feature_size=1024, max_samples=900, cluster_size=64,
                             output_dim=256, gating=True, add_batch_norm=True,
                             is_training=True)
     # input  (bs, 1024, 900, 1)
-    torch.manual_seed(0)
-    input1 = F.normalize(torch.randn((3, 1024, 900, 1)), dim=1)
+    input1 = F.normalize(torch.randn((30, 1024, 900, 1)), dim=1)
     input2 = input1.clone()
     input2 = input2[:, :, torch.randperm(input2.shape[2]), :]
     diff = torch.norm(input2 - input1)
@@ -164,3 +164,4 @@ if __name__ == '__main__':
         output2 = net_vlad(input2)
         diff = torch.norm(output2 - output1)
         print(f'Norm of the difference after NetVLAD: {diff:.3f}.')
+        print(torch.norm(output1))
