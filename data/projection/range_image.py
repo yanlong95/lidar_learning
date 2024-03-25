@@ -93,8 +93,8 @@ def gen_range_images(src_folder_path, dst_folder_path, params, proj_H, proj_W, n
 
     # iterate over all scan files
     for i in tqdm.tqdm(range(len(pc_paths))):
-        points = read_pc(pc_paths[i], format='numpy')
-        # points = np.load(pc_paths[i]).astype(np.float32)
+        # points = read_pc(pc_paths[i], format='numpy')
+        points = np.load(pc_paths[i]).astype(np.float32)
 
         # generate range image
         proj_range = range_projection(points, params, proj_H, proj_W)
@@ -121,11 +121,12 @@ if __name__ == '__main__':
     seq = seqs[7] # os0(45): 0, 5, 6, 7; os1(22.5): 1, 2, 3, 4, 8, 9
 
     # load point clouds path
-    pcd_files_path = os.path.join(config['data_root']['keyframes'], seq, 'pcd_files')
+    pcd_files_path = os.path.join(config['data_root']['keyframes'], seq, 'npy_files')
+    # pcd_files_path = os.path.join(config['data_root']['keyframes'], seq, 'pcd_files')
     # pcd_files_path = os.path.join(config['data_root']['pcd_files'], seq)
 
     # load the destination path
-    png_files_path = os.path.join(config['data_root']['keyframes'], seq, 'png_files', '1024')
+    png_files_path = os.path.join(config['data_root']['keyframes'], seq, 'png_files', '512')
     # png_files_path = os.path.join(config['data_root']['png_files'], '1024', seq)
 
     # lidar parameters
@@ -133,7 +134,7 @@ if __name__ == '__main__':
 
     # projection parameters
     proj_H = 32
-    proj_W = 1024
+    proj_W = 512
 
     # generate range images
     gen_range_images(pcd_files_path, png_files_path, lidar_params, proj_H, proj_W)

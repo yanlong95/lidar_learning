@@ -54,15 +54,15 @@ class trainHandler():
 
         self.traindata_npzfiles = train_set
 
-        (self.train_imgf1, self.train_imgf2, self.train_dir1, self.train_dir2, self.train_overlap) = \
-            overlap_orientation_npz_file2string_string_nparray(self.traindata_npzfiles)
+        (self.train_imgf1, self.train_imgf2, self.train_dir1, self.train_dir2, self.train_overlap, self.overlap_thresh) \
+            = overlap_orientation_npz_file2string_string_nparray(self.traindata_npzfiles)
 
         """change the args for resuming training process"""
         self.resume = False
         self.save_name = os.path.join(self.weights, 'overlap_transformer_38.pth.tar')
 
         """overlap threshold follows OverlapNet"""
-        self.overlap_thresh = 0.3
+        # self.overlap_thresh = 0.3
 
     def train(self):
         epochs = 50
@@ -81,11 +81,11 @@ class trainHandler():
         writer1 = SummaryWriter(comment="LR_0.xxxx")
 
         for i in range(starting_epoch+1, epochs+1):
-            (self.train_imgf1, self.train_imgf2, self.train_dir1, self.train_dir2, self.train_overlap) = \
-                overlap_orientation_npz_file2string_string_nparray(self.traindata_npzfiles, shuffle=True)
+            (self.train_imgf1, self.train_imgf2, self.train_dir1, self.train_dir2, self.train_overlap,
+             self.overlap_thresh) = overlap_orientation_npz_file2string_string_nparray(self.traindata_npzfiles,
+                                                                                       shuffle=True)
 
             print("=======================================================================\n\n\n")
-
             print("training with seq: ", np.unique(np.array(self.train_dir1)))
             print("total pairs: ", len(self.train_imgf1))
             print("\n\n\n=======================================================================")
@@ -128,20 +128,17 @@ class trainHandler():
                     the balance of positive samples and negative samples.
                     TODO: Update for better training results
                 """
-                use_pos_num = 8
-                use_neg_num = 8
+                use_pos_num = 10
+                use_neg_num = 10
                 if pos_num >= use_pos_num and neg_num >= use_neg_num:
                     sample_batch = torch.cat((sample_batch[0:use_pos_num, :, :, :], sample_batch[pos_num:pos_num + use_neg_num, :, :, :]), dim=0)
-                    sample_truth = torch.cat((sample_truth[0:use_pos_num, :], sample_truth[pos_num:pos_num+use_neg_num, :]), dim=0)
                     pos_num = use_pos_num
                     neg_num = use_neg_num
                 elif pos_num >= use_pos_num:
                     sample_batch = torch.cat((sample_batch[0:use_pos_num, :, :, :], sample_batch[pos_num:, :, :, :]), dim=0)
-                    sample_truth = torch.cat((sample_truth[0:use_pos_num, :], sample_truth[pos_num:, :]), dim=0)
                     pos_num = use_pos_num
                 elif neg_num >= use_neg_num:
                     sample_batch = sample_batch[0:pos_num+use_neg_num,:,:,:]
-                    sample_truth = sample_truth[0:pos_num+use_neg_num, :]
                     neg_num = use_neg_num
 
                 if neg_num == 0:
@@ -169,7 +166,7 @@ class trainHandler():
                 # loss = PNV_loss.triplet_loss_inv(o1, o2, o3, MARGIN_1, lazy=False, use_min=True)
                 loss.backward()
                 self.optimizer.step()
-                print(str(used_num), loss)
+                print(str(used_num), loss, f'overlap_thresh:{self.overlap_thresh[j]}')
 
                 if torch.isnan(loss):
                     print("Something error ...")
@@ -184,7 +181,6 @@ class trainHandler():
             self.scheduler.step()
 
             """save trained weights and optimizer states"""
-            # self.save_name = "../weights/pretrained_overlap_transformer"+str(i)+".pth.tar"
             self.save_name = os.path.join(self.weights, "overlap_transformer_"+str(i)+".pth.tar")
 
             torch.save({
@@ -194,15 +190,13 @@ class trainHandler():
             },
                 self.save_name)
 
-            print("Model Saved As " + 'pretrained_overlap_transformer' + str(i) + '.pth.tar')
+            print("Model Saved As " + 'overlap_transformer' + str(i) + '.pth.tar')
 
             writer1.add_scalar("loss", loss_each_epoch / used_num, global_step=i)
 
             with torch.no_grad():
-                # top1_rate = validate_seq_faiss(self.amodel, "02")
-                # top1_rate = validate_seq_faiss(self.amodel, "botanical_garden")
-                top10_rate = validation(self.amodel, overlap_threshold=self.overlap_thresh)
-                writer1.add_scalar("top10_rate", top10_rate, global_step=i)
+                topn_rate = validation(self.amodel, top_n=5)
+                writer1.add_scalar("topn_rate", topn_rate, global_step=i)
 
 
 if __name__ == '__main__':
@@ -210,7 +204,7 @@ if __name__ == '__main__':
     config_filename = '/home/vectr/PycharmProjects/lidar_learning/configs/config.yml'
     config = yaml.safe_load(open(config_filename))
     range_images_folder = config["data_root"]["png_files"]
-    ground_truth_folder = config["data_root"]["gt_overlap"]
+    ground_truth_folder = config["data_root"]["gt_overlaps"]
     training_seqs = config["seqs"]["train"]
     weights = config["data_root"]["weights"]
     # ============================================================================

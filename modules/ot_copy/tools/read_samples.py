@@ -28,7 +28,7 @@ from modules.ot_copy.tools.read_all_sets import overlap_orientation_npz_file2str
         seq_num: the sequence in which the needed scan is (zfill 2).
 """
 def read_one_need_from_seq(data_root_folder, file_num, seq_num):
-    img_path = os.path.join(data_root_folder, seq_num, 'depth', f'{file_num}.png')
+    img_path = os.path.join(data_root_folder, '900', seq_num, f'{file_num}.png')
     depth_data = np.array(cv2.imread(img_path, cv2.IMREAD_GRAYSCALE))
 
     depth_data_tensor = torch.from_numpy(depth_data).type(torch.FloatTensor).cuda()
@@ -66,13 +66,13 @@ def read_one_batch_pos_neg(data_root_folder, f1_index, f1_seq, train_imgf1, trai
     for j in range(len(train_imgf1)):
         pos_flag = False
         if f1_index == train_imgf1[j] and f1_seq==train_dir1[j]:
-            if train_overlap[j] > overlap_thresh:
+            if train_overlap[j] > overlap_thresh[j]:
                 pos_num = pos_num + 1
                 pos_flag = True
             else:
                 neg_num = neg_num + 1
 
-            img_path = os.path.join(data_root_folder, train_dir2[j] , 'depth', f'{train_imgf2[j]}.png')
+            img_path = os.path.join(data_root_folder, '900', train_dir2[j], f'{train_imgf2[j]}.png')
             depth_data_r = np.array(cv2.imread(img_path, cv2.IMREAD_GRAYSCALE))
 
             depth_data_tensor_r = torch.from_numpy(depth_data_r).type(torch.FloatTensor).cuda()

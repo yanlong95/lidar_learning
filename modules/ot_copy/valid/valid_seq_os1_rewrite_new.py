@@ -1,11 +1,4 @@
-import os
 import sys
-p = os.path.dirname(os.path.dirname((os.path.abspath(__file__))))
-if p not in sys.path:
-    sys.path.append(p)
-sys.path.append('../tools/')
-sys.path.append('../modules/')
-
 import tqdm
 import faiss
 import yaml
@@ -25,33 +18,29 @@ def read_image(path):
     return depth_data_tensor
 
 
-def validation(amodel, overlap_threshold):
+def validation(amodel, top_n=5):
     # ===============================================================================
     # loading paths and parameters
     config_filename = '/home/vectr/PycharmProjects/lidar_learning/configs/config.yml'
-    with open(config_filename) as f:
-        try:
-            config = yaml.safe_load(f)
-        except yaml.YAMLError as e:
-            print(e)
-
+    config = yaml.safe_load(open(config_filename))
     valid_scans_folder = config['data_root']['png_files']
-    ground_truth_folder = config['data_root']['gt_overlap']
+    ground_truth_folder = config['data_root']['gt_overlaps']
     valid_seq = config['seqs']['valid'][0]
     # ===============================================================================
 
-    valid_scan_paths = load_files(os.path.join(valid_scans_folder, valid_seq, 'depth'))
-    ground_truth_paths = load_files(os.path.join(ground_truth_folder, valid_seq, 'overlaps_val'))
+    valid_scan_paths = load_files(os.path.join(valid_scans_folder, '900', valid_seq))
+    ground_truth_paths = os.path.join(ground_truth_folder, valid_seq, 'overlaps.npz')
+    ground_truth_overlaps = np.load(ground_truth_paths)['arr_0']
 
     with torch.no_grad():
         num_scans = len(valid_scan_paths)
-        num_valid = len(ground_truth_paths)
-        descriptors = np.zeros((num_scans, 256))
 
+        # calculate all descriptors
+        descriptors = np.zeros((num_scans, 256))
         for i in tqdm.tqdm(range(num_scans)):
             # load a scan
             current_batch = read_image(valid_scan_paths[i])
-            current_batch = torch.cat((current_batch, current_batch), dim=0)            # no idea why, keep it now
+            current_batch = torch.cat((current_batch, current_batch), dim=0)        # no idea why, keep it now
 
             # calculate descriptor
             amodel.eval()
@@ -60,50 +49,60 @@ def validation(amodel, overlap_threshold):
 
         descriptors = descriptors.astype('float32')
 
-        # save the descriptors to debug faster
-        # np.save('/home/vectr/Documents/Dataset/train/botanical_garden/descriptors', descriptors)
-        # descriptors = np.load('/home/vectr/Documents/Dataset/train/botanical_garden/descriptors.npy')
-
         # searching
-        nlist = 1
-        k = 7
-        d = 256
-
-        quantizer = faiss.IndexFlatL2(d)
-        index = faiss.IndexIVFFlat(quantizer, d, nlist, faiss.METRIC_L2)
-
-        if not index.is_trained:
-            index.train(descriptors)
-
+        d = descriptors.shape[1]
+        index = faiss.IndexFlatL2(d)
         index.add(descriptors)
 
         # search the closest descriptors for each one in the validation set
-        top_n = 3
+        """
+        2 ways to calculate the validation.
+        a. search the closest descriptors, if their overlap values greater than the threshold, then positive prediction
+           (not recommend as most of top_n scans are close to current scan even for a random model. choose a large top_n
+           if want to use this way).
+        b. search top_n positive and negative descriptors, if distances between the all positive descriptors are greater 
+           than the negative descriptors, then positive prediction.  
+        """
+        recall = True
         num_pos_pred = 0
-        # num_neg_pred = 0
 
-        scan_ids = np.arange(0, num_scans, 10)
-        for i in range(num_valid):
-            scan_id = scan_ids[i]
-            ground_truth = np.load(ground_truth_paths[i])
+        for i in range(num_scans):
+            ground_truth = ground_truth_overlaps[i]
+            pos_scans = ground_truth[ground_truth[:, 2] >= ground_truth[:, 3]]
+            neg_scans = ground_truth[ground_truth[:, 2] < ground_truth[:, 3]]
 
-            D, I = index.search(descriptors[scan_id, :].reshape(1, -1), k)
-            # D_reverse, I_reverse = index.search(descriptors[scan_id, :].reshape(1, -1), num_valid)
+            # in case no enough positive scans
+            top_n = min(len(pos_scans), top_n)
 
-            if I[:, 0] == scan_id:
-                min_index = I[:, 1]
+            if recall:
+                D, I = index.search(descriptors[i, :].reshape(1, -1), top_n)
+
+                if I[:, 0] == i:
+                    min_index = I[:, 1:]
+                else:
+                    min_index = I[:, :]
+
+                if np.all(ground_truth[min_index, 2] > ground_truth[min_index, 3]):
+                    num_pos_pred += 1
             else:
-                min_index = I[:, 0]
+                pos_indices = np.random.choice(pos_scans[:, 1], top_n, replace=False).astype(int)
+                neg_indices = np.random.choice(neg_scans[:, 1], top_n, replace=False).astype(int)
 
-            if ground_truth[min_index, 2] > overlap_threshold:
-                num_pos_pred += 1
+                pos_descriptors = descriptors[pos_indices, :]
+                neg_descriptors = descriptors[neg_indices, :]
 
-            # max_index = I_reverse[:, -1]
-            # if ground_truth[max_index, 2] < overlap_threshold:
-            #     num_neg_pred += 1
+                pos_dists = np.linalg.norm(pos_descriptors - descriptors[i, :], axis=1)
+                neg_dists = np.linalg.norm(neg_descriptors - descriptors[i, :], axis=1)
+
+                num_pos_pred_j = 0
+                for j in range(top_n):
+                    if np.all(pos_dists[j] - neg_dists <= 0):
+                        num_pos_pred_j += 1
+                if num_pos_pred_j == top_n:
+                    num_pos_pred += 1
 
     # precision = num_pos_pred / (top_n * num_valid)
-    precision = num_pos_pred / num_valid
+    precision = num_pos_pred / num_scans
     # precision_neg = num_neg_pred / num_valid
     print(f'top {top_n} precision: {precision}.')
     # print(f'top {top_n} precision_neg: {precision_neg}')

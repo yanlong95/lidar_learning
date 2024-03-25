@@ -15,8 +15,8 @@ def best_pos_distance(query, pos_vecs):
     query_copies = query.repeat(int(num_pos), 1)
     diff = ((pos_vecs - query_copies) ** 2).sum(1)
 
-    min_pos = diff.min(0)
-    max_pos = diff.max(0)
+    min_pos, _ = diff.min(0)
+    max_pos, _ = diff.max(0)
     return min_pos, max_pos
 
 
