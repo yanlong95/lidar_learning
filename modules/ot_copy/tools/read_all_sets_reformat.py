@@ -59,11 +59,6 @@ def read_one_batch_pos_neg(img_folder_path, overlaps, idx, shuffle=True):  # wit
     return anchor_batch, pos_sample_batch, neg_sample_batch, num_pos, num_neg
 
 
-def read_one_need_from_seq(folder, seq, file):
-    img_path = os.path.join(folder, '900', seq, f'{file}.png')
-    return read_image(img_path)
-
-
 if __name__ == '__main__':
     train_dataset = ['/media/vectr/T9/Dataset/overlap_transformer/gt_overlaps/botanical_garden/overlaps_train.npz',
                      '/media/vectr/T9/Dataset/overlap_transformer/gt_overlaps/botanical_garden/overlaps_valid.npz']
