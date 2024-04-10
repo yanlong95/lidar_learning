@@ -10,12 +10,19 @@ data_root:
   poses: "/media/vectr/T9/Dataset/overlap_transformer/poses"
   test: "/media/vectr/T9/Dataset/overlap_transformer/test"
   weights: "/media/vectr/T9/Dataset/overlap_transformer/weights/weights_0.3"
+  predictions: "/media/vectr/T9/Dataset/overlap_transformer/predictions"
 
 seqs:
   all: ["bomb_shelter", "botanical_garden", "bruin_plaza", "court_of_sciences", "dickson_court", "geo_loop",
         "kerckhoff", "luskin", "royce_hall", "sculpture_garden"]
   train: ["bomb_shelter", "botanical_garden", "bruin_plaza", "court_of_sciences", "dickson_court", "kerckhoff"]
   valid: ["geo_loop"]
+  test: ["geo_loop", "royce_hall", "sculpture_garden"]
 
-test_root:
-  data_root_folder: "/media/vectr/T9/Dataset/overlap_transformer"
+# used for old version test
+test_config:
+  test_seqs: ["botanical_garden", "geo_loop", "royce_hall", "sculpture_garden"]
+  test_frames: "/media/vectr/T9/Dataset/overlap_transformer/test/"
+  test_keyframes: "/media/vectr/T9/Dataset/overlap_transformer/keyframes/"
+  test_descriptors: "/media/vectr/T9/Dataset/overlap_transformer/descriptors/"
+  test_weights: "/media/vectr/T9/Dataset/overlap_transformer/weights/pretrained_overlap_transformer_full_test50.pth.tar"

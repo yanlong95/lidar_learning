@@ -10,46 +10,28 @@ import matplotlib
 import torch
 import numpy as np
 from scipy.spatial import Voronoi, voronoi_plot_2d, Delaunay, transform
-# from modules.overlap_transformer import featureExtracter
 from modules.ot_copy.modules.overlap_transformer_haomo import featureExtracter
-from modules.ot_copy.tools.read_samples import read_one_need_from_seq
 
 np.set_printoptions(threshold=sys.maxsize)
 from modules.ot_copy.tools.utils.utils import *
+from tools.fileloader import load_xyz_rot, read_image
 import faiss
 import yaml
 import tqdm
-import cv2
 
 
-def read_image(image_path):
-    device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
-    depth_data = np.array(cv2.imread(image_path, cv2.IMREAD_GRAYSCALE))
-    depth_data_tensor = torch.from_numpy(depth_data).type(torch.FloatTensor).to(device)
-    depth_data_tensor = torch.unsqueeze(depth_data_tensor, dim=0)
-    depth_data_tensor = torch.unsqueeze(depth_data_tensor, dim=0)
+def load_keyframes(keyframe_img_path, keyframe_poses_path):
+    keyframe_images = load_files(keyframe_img_path)
+    keyframe_xyz, _ = load_xyz_rot(keyframe_poses_path)
 
-    return depth_data_tensor
+    return keyframe_images, keyframe_xyz
 
 
-def load_keyframes(keyframe_path):
-    keyframe_images_path = os.path.join(keyframe_path, 'png_files', '900')
-    keyframe_poses_path = os.path.join(keyframe_path, 'poses/poses_kf.txt')
+def load_test_frames(test_frame_img_path, test_frame_poses_path):
+    test_frame_images = load_files(test_frame_img_path)
+    test_frame_xyz, _ = load_xyz_rot(test_frame_poses_path)
 
-    keyframe_images = load_files(keyframe_images_path)
-    keyframe_poses = load_poses(keyframe_poses_path)
-
-    return keyframe_images, keyframe_poses
-
-
-def load_test_frames(test_frame_path):
-    test_frame_images_path = os.path.join(test_frame_path, 'depth')
-    test_frame_poses_path = os.path.join(test_frame_path, 'poses/poses.txt')
-
-    test_frame_images = load_files(test_frame_images_path)
-    test_frame_poses = load_poses(test_frame_poses_path)
-
-    return test_frame_images, test_frame_poses
+    return test_frame_images, test_frame_xyz
 
 
 # load test frame ground truth overlaps for debugging
@@ -155,9 +137,9 @@ def calc_voronoi_map(keyframe_poses):
     return delaunay_triangulation, voronoi
 
 
-def calc_top_n(keyframe_poses, keyframe_descriptors, keyframe_voronoi_region, test_frame_poses, test_frame_descriptors,
+def calc_top_n_voronoi(keyframe_poses, keyframe_descriptors, keyframe_voronoi_region, test_frame_poses, test_frame_descriptors,
                top_n=5):
-    num_test_frame = len(test_frame_poses)
+    num_test_frames = len(test_frame_poses)
 
     # initialize searching
     nlist = 1
@@ -185,7 +167,7 @@ def calc_top_n(keyframe_poses, keyframe_descriptors, keyframe_voronoi_region, te
     positive_pred_indices = []
     negative_pred_indices = []
 
-    for curr_frame_idx in range(num_test_frame):
+    for curr_frame_idx in range(num_test_frames):
         curr_frame_pose = test_frame_poses[curr_frame_idx, :].reshape(1, -1)                        # (dim,) to (1, dim)
         curr_frame_descriptor = test_frame_descriptors[curr_frame_idx, :].reshape(1, -1)
 
@@ -212,23 +194,68 @@ def calc_top_n(keyframe_poses, keyframe_descriptors, keyframe_voronoi_region, te
                 negative_pred.append(pos_3d)
                 negative_pred_indices.append(curr_frame_idx)
 
-    precision = len(positive_pred) / num_test_frame
+    precision = len(positive_pred) / num_test_frames
     print(f'Prediction precision: {precision}.')
 
     return precision, positive_pred, negative_pred, positive_pred_indices, negative_pred_indices, top_n_choices
 
 
-def plot_prediction(voronoi_map, positive_pred, negative_pred, positive_pred_indices, negative_pred_indices,
-                    test_frames_path):
-    fig = voronoi_plot_2d(voronoi_map)
+def calc_top_n_distance(keyframe_poses, keyframe_descriptors, test_frame_poses, test_frame_descriptors, top_n, max_dist):
+    positive_pred = []
+    negative_pred = []
+    top_n_choices = []
+    positive_pred_indices = []
+    negative_pred_indices = []
+
+    num_test_frames = test_frame_descriptors.shape[0]
+    dim_descriptors = keyframe_descriptors.shape[1]
+
+    # search the min distances between any 2 keyframes and use it as the threshold for positive and negative prediction
+    index_kf_poses = faiss.IndexFlatL2(3)
+    index_kf_poses.add(keyframe_poses)
+    D_kf_poses, _ = index_kf_poses.search(keyframe_poses, 2)
+    max_dist = max(max(D_kf_poses[:, 1]) ** 0.5, max_dist)
+
+    # faiss search based on descriptors norm distances
+    index_descriptors = faiss.IndexFlatL2(dim_descriptors)
+    index_descriptors.add(keyframe_descriptors)
+
+    # check prediction for each test frame
+    D_descriptors, I_descriptors = index_descriptors.search(test_frame_descriptors, top_n)
+    for i in range(num_test_frames):
+        curr_frame_poses = test_frame_poses[i, :]
+        top_n_keyframes_indices = I_descriptors[i, :]
+        top_n_keyframes_distances = np.linalg.norm(keyframe_poses[top_n_keyframes_indices, :] - curr_frame_poses,
+                                                   axis=1)
+
+        # check if positive or negative prediction
+        top_n_choices.append(top_n_keyframes_indices)
+        if np.any(top_n_keyframes_distances <= max_dist):
+            positive_pred.append(curr_frame_poses)
+            positive_pred_indices.append(i)
+        else:
+            negative_pred.append(curr_frame_poses)
+            negative_pred_indices.append(i)
+
+    precision = len(positive_pred) / num_test_frames
+    print(f'Prediction precision: {precision}.')
+
+    return precision, positive_pred, negative_pred, positive_pred_indices, negative_pred_indices, top_n_choices
+
+
+def plot_prediction(positive_pred, negative_pred, positive_pred_indices, negative_pred_indices,
+                    predictions_path):
+    # fig = voronoi_plot_2d(voronoi_map)
     positive_points = np.array(positive_pred)
     negative_points = np.array(negative_pred)
 
     # # save the predictions (for further use)
-    # np.save(os.path.join(test_frames_path, 'predictions/true/poses.npy'), positive_points)
-    # np.save(os.path.join(test_frames_path, 'predictions/false/poses.npy'), negative_points)
-    # np.save(os.path.join(test_frames_path, 'predictions/true/indices.npy'), positive_pred_indices)
-    # np.save(os.path.join(test_frames_path, 'predictions/false/indices.npy'), negative_pred_indices)
+    # if not os.path.exists(predictions_path):
+    #     os.makedirs(predictions_path)
+    # np.save(os.path.join(predictions_path, 'predictions/true/poses.npy'), positive_points)
+    # np.save(os.path.join(predictions_path, 'predictions/false/poses.npy'), negative_points)
+    # np.save(os.path.join(predictions_path, 'predictions/true/indices.npy'), positive_pred_indices)
+    # np.save(os.path.join(predictions_path, 'predictions/false/indices.npy'), negative_pred_indices)
 
     if len(positive_pred) > 0:
         plt.scatter(positive_points[:, 0], positive_points[:, 1], c='g', s=50, label='positive')
@@ -241,25 +268,25 @@ def plot_prediction(voronoi_map, positive_pred, negative_pred, positive_pred_ind
 
 
 def plot_top_n_keyframes(positive_pred_indices, negative_pred_indices, top_n_choices, keyframe_poses, test_frame_poses,
-                         test_frame_poses_full, test_frame_overlaps):
+                         test_frame_poses_full):
     for idx in negative_pred_indices:
         # load the top n keyframes poses for current frame
         top_n_choice = top_n_choices[idx]
         top_n_keyframe_poses = np.array([keyframe_poses[i][:2] for i in top_n_choice])
 
         # load ground truth overlap for current frame
-        test_frame_overlap = test_frame_overlaps[idx][:, 2]
-        test_frame_indices = np.argsort(test_frame_overlap)
-        test_frame_poses_sorted = test_frame_poses_full[test_frame_indices]
+        # test_frame_overlap = test_frame_overlaps[idx][:, 2]
+        # test_frame_indices = np.argsort(test_frame_overlap)
+        # test_frame_poses_sorted = test_frame_poses_full[test_frame_indices]
 
         # plot
         plt.figure(1)
         norm = matplotlib.colors.Normalize(vmin=0, vmax=1, clip=True)
         mapper = matplotlib.cm.ScalarMappable(norm=norm)
-        mapper.set_array(test_frame_overlap)
-        colors = np.array([mapper.to_rgba(1) if a > 0.3 else mapper.to_rgba(0) for a in test_frame_overlap])
+        # mapper.set_array(test_frame_overlap)
+        # colors = np.array([mapper.to_rgba(1) if a > 0.3 else mapper.to_rgba(0) for a in test_frame_overlap])
 
-        plt.scatter(test_frame_poses_sorted[:, 0], test_frame_poses_sorted[:, 1], c=colors[test_frame_indices], s=10)
+        # plt.scatter(test_frame_poses_sorted[:, 0], test_frame_poses_sorted[:, 1], c=colors[test_frame_indices], s=10)
         plt.scatter(keyframe_poses[:, 0], keyframe_poses[:, 1], c='tan', s=5, label='keyframes')
         plt.scatter(top_n_keyframe_poses[:, 0], top_n_keyframe_poses[:, 1], c='magenta', s=5, label='top n choices')
         plt.scatter(test_frame_poses[idx, 0], test_frame_poses[idx, 1], c='orange', s=20, label=f'frame: {idx}')
@@ -275,7 +302,8 @@ def plot_top_n_keyframes(positive_pred_indices, negative_pred_indices, top_n_cho
         plt.show()
 
 
-def testHandler(keyframe_path, test_frames_path, weights_path, descriptors_path, test_selection=1, load_descriptors=False):
+def testHandler(test_frame_img_path, test_frame_poses_path, keyframes_img_path, keyframes_poses_path, weights_path,
+                descriptors_path, predictions_path, test_selection=1, load_descriptors=False, metric='euclidean'):
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
     amodel = featureExtracter(height=32, width=900, channels=1, use_transformer=True).to(device)
 
@@ -286,95 +314,78 @@ def testHandler(keyframe_path, test_frames_path, weights_path, descriptors_path,
         amodel.load_state_dict(checkpoint['state_dict'])
 
         # calculate ground truth and descriptors
-        keyframe_images, keyframe_poses = load_keyframes(keyframe_path)
-        test_frame_images, test_frame_poses = load_test_frames(test_frames_path)
-        test_frame_overlaps_full = load_test_frame_overlaps(test_frames_path)
+        test_frame_images, test_frame_xyz = load_test_frames(test_frame_img_path, test_frame_poses_path)
+        keyframe_images, keyframe_xyz = load_keyframes(keyframes_img_path, keyframes_poses_path)
+        # test_frame_overlaps_full = load_test_frame_overlaps(test_frames_path)
 
-        # keyframe_images, _ = load_keyframes('/media/vectr/T9/Dataset/overlap_transformer/keyframes/sculpture_garden')
-
-        keyframe_locs, _ = calc_ground_truth(keyframe_poses)
-        test_frame_locs_full, _ = calc_ground_truth(test_frame_poses)
-        test_frame_locs = test_frame_locs_full[::test_selection]
-        test_frame_overlaps = test_frame_overlaps_full[::test_selection]
+        test_frame_xyz_selected = test_frame_xyz[::test_selection]
+        # test_frame_overlaps = test_frame_overlaps_full[::test_selection]
 
         if load_descriptors:
             keyframe_descriptors = np.load(os.path.join(descriptors_path, 'keyframe_descriptors.npy'))
             test_frame_descriptors = np.load(os.path.join(descriptors_path, 'test_frame_descriptors.npy'))
+            test_frame_descriptors_selected = test_frame_descriptors[::test_selection]
         else:
             print('calculating descriptors for keyframe ...')
             keyframe_descriptors = calc_descriptors(keyframe_images, amodel)
 
             print('calculating descriptors for test frames ...')
-            # test_frame_descriptors_full = calc_descriptors(test_frame_images, amodel)
-            print('finish the calculations for all the descriptors.')
+            test_frame_descriptors = calc_descriptors(test_frame_images, amodel)
 
             # select 1 sample per test_selection samples, reduce the test size
-            # test_frame_descriptors = test_frame_descriptors_full[::test_selection]
-            test_frame_descriptors = np.load(os.path.join(descriptors_path, 'test_frame_descriptors.npy'))
+            test_frame_descriptors_selected = test_frame_descriptors[::test_selection]
 
             if not os.path.exists(descriptors_path):
                 os.makedirs(descriptors_path)
-            # np.save(os.path.join(descriptors_path, 'keyframe_descriptors'), keyframe_descriptors)
-            # np.save(os.path.join(descriptors_path, 'test_frame_descriptors'), test_frame_descriptors)
+            np.save(os.path.join(descriptors_path, 'keyframe_descriptors'), keyframe_descriptors)
+            np.save(os.path.join(descriptors_path, 'test_frame_descriptors'), test_frame_descriptors)
 
-        # test 2d plot
-        # plot_keyframe_poses(test_frame_locs_full, keyframe_locs)
+        # # test 2d plot
+        # plot_keyframe_poses(test_frame_xyz, keyframe_xyz)
 
-        # test voronoi map
-        keyframe_voronoi_region, voronoi_map = calc_voronoi_map(keyframe_locs)
+        if metric == 'euclidean':
+            # max_dist = max(max_dist, maximum distances between any 2 keyframes)
+            precision, positive_pred, negative_pred, positive_pred_indices, negative_pred_indices, top_n_choices = \
+                calc_top_n_distance(keyframe_xyz, keyframe_descriptors, test_frame_xyz_selected,
+                                    test_frame_descriptors_selected, top_n=5, max_dist=5)
+        elif metric == 'voronoi':
 
-        # calculate the top n choices
-        precision, positive_pred, negative_pred, positive_pred_indices, negative_pred_indices, top_n_choices = \
-            calc_top_n(keyframe_locs, keyframe_descriptors, keyframe_voronoi_region, test_frame_locs,
-                       test_frame_descriptors, top_n=5)
+            # test voronoi map
+            keyframe_voronoi_region, voronoi_map = calc_voronoi_map(keyframe_xyz)
+            precision, positive_pred, negative_pred, positive_pred_indices, negative_pred_indices, top_n_choices = \
+                calc_top_n_voronoi(keyframe_xyz, keyframe_descriptors, keyframe_voronoi_region, test_frame_xyz_selected,
+                                   test_frame_descriptors_selected, top_n=5)
+        else:
+            raise ValueError('Invalid metric! Metric must be either euclidean or voronoi!')
 
         # show the result
-        plot_prediction(voronoi_map, positive_pred, negative_pred, positive_pred_indices, negative_pred_indices,
-                        test_frames_path)
-        plot_top_n_keyframes(positive_pred_indices, negative_pred_indices, top_n_choices, keyframe_locs,
-                             test_frame_locs, test_frame_locs_full, test_frame_overlaps)
-
-
-def plot_keyframe_poses(poses, keyframe_poses, dim=2):
-    if dim == 2:
-        x = poses[:, 0]
-        y = poses[:, 1]
-
-        x_keyframe = keyframe_poses[:, 0]
-        y_keyframe = keyframe_poses[:, 1]
-
-        fig, ax = plt.subplots()
-        ax.scatter(x, y, c='gold', s=2, label='Trajectory')
-        ax.scatter(x_keyframe, y_keyframe, c='blue', s=3, label='Keyframe')
-
-        plt.title('Position')
-        plt.xlabel('x')
-        plt.ylabel('y')
-        plt.legend()
-        plt.axis('equal')
-
-        plt.show()
-
-    elif dim == 3:
-        xyz = poses
-    else:
-        raise "Error: dimension must be 2 or 3."
+        plot_prediction(positive_pred, negative_pred, positive_pred_indices, negative_pred_indices, predictions_path)
+        plot_top_n_keyframes(positive_pred_indices, negative_pred_indices, top_n_choices, keyframe_xyz,
+                             test_frame_xyz_selected, test_frame_xyz)
 
 
 if __name__ == '__main__':
     # load config ================================================================
     config_filename = '/home/vectr/PycharmProjects/lidar_learning/configs/config.yml'
     config = yaml.safe_load(open(config_filename))
-    test_seq = config["test_config"]["test_seqs"][0]
-    test_frames_path = config["test_config"]["test_frames"]
-    test_keyframe_path = config["test_config"]["test_keyframes"]
-    test_descriptors_path = config["test_config"]["test_descriptors"]
-    test_weights_path = config["test_config"]["test_weights"]
+    frame_img_path = config["data_root"]["png_files"]
+    frame_poses_path = config["data_root"]["poses"]
+    keyframe_path = config["data_root"]["keyframes"]
+    descriptors_path = config["data_root"]["descriptors"]
+    predictions_path = config["data_root"]["predictions"]
+    weights_path = config["data_root"]["weights"]
+    test_seq = config["seqs"]["test"][1]
     # ============================================================================
 
-    test_frames_path_seq = os.path.join(test_frames_path, test_seq)
-    test_keyframe_path_seq = os.path.join(test_keyframe_path, test_seq)
-    test_descriptors_path_seq = os.path.join(test_descriptors_path, test_seq)
+    test_frame_img_path = os.path.join(frame_img_path, '900', test_seq)
+    test_frame_pose_path = os.path.join(frame_poses_path, test_seq, 'poses.txt')
+    test_keyframe_img_path = os.path.join(keyframe_path, test_seq, 'png_files', '900')
+    test_keyframe_poses_path = os.path.join(keyframe_path, test_seq, 'poses', 'poses_kf.txt')
+    test_weights_path = os.path.join(weights_path, 'overlap_transformer_50.pth.tar')
+    # test_weights_path = '/media/vectr/T9/Dataset/overlap_transformer/weights/pretrained_overlap_transformer_full_test50.pth.tar'
+    test_descriptors_path = os.path.join(descriptors_path, test_seq)
+    test_predictions_path = os.path.join(predictions_path, test_seq)
 
-    testHandler(test_keyframe_path_seq, test_frames_path_seq, test_weights_path, test_descriptors_path_seq, test_selection=10,
-                load_descriptors=False)
+    testHandler(test_frame_img_path, test_frame_pose_path, test_keyframe_img_path, test_keyframe_poses_path,
+                test_weights_path, test_descriptors_path, test_predictions_path, test_selection=10,
+                load_descriptors=False, metric='euclidean')

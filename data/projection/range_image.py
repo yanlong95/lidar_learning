@@ -118,12 +118,12 @@ if __name__ == '__main__':
 
     # choose sequence
     seqs = config['seqs']['all']
-    seq = seqs[9] # os0(45): 0, 5, 6, 7; os1(22.5): 1, 2, 3, 4, 8, 9
+    seq = seqs[7]   # os0(45): 0, 5, 6, 7; os1(22.5): 1, 2, 3, 4, 8, 9
 
     # load point clouds path
     # pcd_files_path = os.path.join(config['data_root']['keyframes'], seq, 'npy_files')
-    # pcd_files_path = os.path.join(config['data_root']['keyframes'], seq, 'pcd_files')
-    pcd_files_path = os.path.join(config['data_root']['pcd_files'], seq)
+    pcd_files_path = os.path.join(config['data_root']['keyframes'], seq, 'pcd_files')
+    # pcd_files_path = os.path.join(config['data_root']['pcd_files'], seq)
 
     # load the destination path
     png_files_path = os.path.join(config['data_root']['keyframes'], seq, 'png_files', '1024')
@@ -140,6 +140,11 @@ if __name__ == '__main__':
     gen_range_images(pcd_files_path, png_files_path, lidar_params, proj_H, proj_W)
 
     # # view generated image
-    # img = mpimg.imread(os.path.join(png_files_path, '001800.png'))
-    # plt.imshow(img, cmap='viridis')
+    # png_files_path = '/media/vectr/T9/Dataset/overlap_transformer/png_files/900/sculpture_garden'
+    # files = os.listdir(png_files_path)
+    # for file in files:
+    #     img = mpimg.imread(os.path.join(png_files_path, f'{str(file).zfill(6)}'))
+    #     plt.imshow(img, cmap='viridis')
+    #     plt.title(f'{file}')
+    #     plt.pause(0.001)
     # plt.show()

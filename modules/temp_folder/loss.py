@@ -1,5 +1,6 @@
 import torch
 import torch.nn as nn
+import torch.nn.functional as F
 
 
 def best_pos_distance(query, pos_vecs, axis=1):
@@ -12,9 +13,24 @@ def best_pos_distance(query, pos_vecs, axis=1):
         axis: (int) the sum axis (default is 1 for vector 1 * n, switch to 0 if vector has dimension n * 1).
     """
     diff = ((pos_vecs - query) ** 2).sum(axis)
-    min_pos = diff.min()
-    max_pos = diff.max()
+    min_pos, _ = diff.min()
+    max_pos, _ = diff.max()
     return min_pos, max_pos
+
+
+def mean_squared_error_loss(vec1, vec2, overlaps):
+    """
+    First calculate the cosine similarity between two batch of vectors.
+    Then calculate the mean squared error between the similarity and overlaps.
+
+    Args:
+        vec1: (torch.Tensor) scan1 vectors in shape (num, vec_size).
+        vec2: (torch.Tensor) scan2 vectors in shape (num, vec_size).
+        overlaps: (float) the overlaps between two vectors.
+    """
+    similarity = F.cosine_similarity(vec1, vec2)
+    loss = F.mse_loss(similarity, overlaps)
+    return loss
 
 
 def triplet_loss(q_vec, pos_vecs, neg_vecs, margin, use_min=False, lazy=False, ignore_zero_loss=False):
