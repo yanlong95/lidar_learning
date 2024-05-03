@@ -58,7 +58,7 @@ class trainHandler():
             = overlap_orientation_npz_file2string_string_nparray(self.traindata_npzfiles)
 
         """change the args for resuming training process"""
-        self.resume = True
+        self.resume = False
         self.save_name = os.path.join(self.weights, 'overlap_transformer_33.pth.tar')
 
         """overlap threshold follows OverlapNet"""

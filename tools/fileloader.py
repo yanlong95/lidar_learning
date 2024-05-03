@@ -107,16 +107,16 @@ def read_pc(pc_path, format='numpy'):
     return pc
 
 
-def read_image(image_path):
+def read_image(image_path, device='cuda'):
     """
     Read a single image in tensor form.
 
     Args:
         image_path: (string) the path of the image
+        device: (string or torch.device()) training device
     Returns:
         depth_data: (tensor) image tensor in shape (1, 1, H, W)
     """
-    device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
     image = cv2.imread(image_path, cv2.IMREAD_GRAYSCALE)                    # in grayscale, shape (H, W)
     depth_data = torch.from_numpy(image).type(torch.float32).to(device)
     depth_data = torch.unsqueeze(depth_data, dim=0)                         # shape (1, H, W)

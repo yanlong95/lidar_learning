@@ -46,12 +46,14 @@ def triplet_loss(q_vec, pos_vecs, neg_vecs, margin, use_min=False, lazy=False, i
         triplet_loss = loss.max(1)[0]
     else:
         triplet_loss = loss.sum(0)
+
     if ignore_zero_loss:
         hard_triplets = torch.gt(triplet_loss, 1e-16).float()
         num_hard_triplets = torch.sum(hard_triplets)
         triplet_loss = triplet_loss.sum() / (num_hard_triplets + 1e-16)
     else:
         triplet_loss = triplet_loss.mean()
+
     return triplet_loss
 
 def triplet_loss_inv(q_vec, pos_vecs, neg_vecs, margin, use_min=True, lazy=False, ignore_zero_loss=False):

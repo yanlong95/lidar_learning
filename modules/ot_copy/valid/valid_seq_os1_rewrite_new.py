@@ -59,10 +59,13 @@ def validation(amodel, top_n=5):
         2 ways to calculate the validation.
         a. search the closest descriptors, if their overlap values greater than the threshold, then positive prediction
            (not recommend as most of top_n scans are close to current scan even for a random model. choose a large top_n
-           if want to use this way).
-        b. search top_n positive and negative descriptors, if distances between the all positive descriptors are greater 
+           if you want to use this way).
+        b. search top_n positive and negative descriptors, if distances between the all positive descriptors are smaller 
            than the negative descriptors, then positive prediction.  
         """
+        # TODO: add another valid method. choose the top n closest keyframes based on the distance of descriptors, if
+        #       any chosen keyframe is the closest keyframe based on global distance, then a correct prediction.
+
         recall = True
         num_pos_pred = 0
 

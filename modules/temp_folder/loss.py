@@ -73,7 +73,7 @@ def triplet_loss(q_vec, pos_vecs, neg_vecs, margin, use_min=False, lazy=False, i
     if ignore_zero_loss:
         hard_triplet = torch.gt(loss, 1e-16).float()    # 1 is element > 0, otherwise 0
         num_hard_triplet = torch.sum(hard_triplet)
-        loss = loss.sum() / num_hard_triplet
+        loss = loss.sum() / (num_hard_triplet + 1e-16)
     else:
         loss = loss.mean()
 

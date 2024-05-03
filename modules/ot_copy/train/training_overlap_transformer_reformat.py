@@ -17,14 +17,13 @@ import torch
 import numpy as np
 from tensorboardX import SummaryWriter
 from modules.ot_copy.modules.overlap_transformer_haomo import featureExtracter
-from modules.ot_copy.tools.read_samples import read_one_batch_pos_neg
 np.set_printoptions(threshold=sys.maxsize)
 import modules.ot_copy.modules.loss as PNV_loss
 from modules.ot_copy.tools.utils.utils import *
 from modules.ot_copy.valid.valid_seq_os1_rewrite_new import validation
 import yaml
 
-from modules.ot_copy.tools.read_all_sets_reformat import overlaps_loader, read_one_need_from_seq, read_one_batch_pos_neg
+from modules.ot_copy.tools.read_all_sets_reformat import overlaps_loader, read_one_batch_pos_neg
 from tools.utils import RunningAverage, save_checkpoint
 
 
@@ -69,25 +68,26 @@ class trainHandler():
         overlaps_data = overlaps_loader(self.overlaps_folder, shuffle=True)
         num_scans = overlaps_data.shape[0]
 
-        for j in tqdm.tqdm(num_scans):
+        for j in tqdm.tqdm(range(num_scans)):
             # load a batch for a single scan
             anchor_batch, pos_sample_batch, neg_sample_batch, num_pos, num_neg = (
-                read_one_batch_pos_neg(self.img_folder, overlaps_data, j, shuffle=True))
+                read_one_batch_pos_neg(self.img_folder, overlaps_data, j, self.channels, self.height, self.width,
+                                       self.num_pos_max, self.num_neg_max, self.device, shuffle=True))
 
             # in case no pair
             if num_pos == 0 or num_neg == 0:
                 continue
 
-            # reduce the size of a batch
-            if num_pos > self.num_pos_max:
-                num_pos = self.num_pos_max
-                pos_sample_batch = pos_sample_batch[:num_pos, :, :, :]
-            if num_neg > self.num_neg_max:
-                num_neg = self.num_neg_max
-                neg_sample_batch = neg_sample_batch[:num_neg, :, :, :]
+            # # reduce the size of a batch
+            # if num_pos > self.num_pos_max:
+            #     num_pos = self.num_pos_max
+            #     pos_sample_batch = pos_sample_batch[:num_pos, :, :, :]
+            # if num_neg > self.num_neg_max:
+            #     num_neg = self.num_neg_max
+            #     neg_sample_batch = neg_sample_batch[:num_neg, :, :, :]
 
             input_batch = torch.cat((anchor_batch, pos_sample_batch, neg_sample_batch), dim=0)
-            input_batch.requires_grad_(True)
+            input_batch.requires_grad_(True)    # no idea why require gradient, does not matter here
 
             output_batch = self.model(input_batch)
             o1, o2, o3 = torch.split(output_batch, [1, num_pos, num_neg], dim=0)
@@ -121,7 +121,7 @@ class trainHandler():
             start_epoch = 0
             best_val = 0.0
 
-        writer1 = SummaryWriter(comment="LR_0.xxxx")
+        writer1 = SummaryWriter(comment=f"LR_{self.learning_rate}")
 
         overlaps_data = overlaps_loader(self.overlaps_folder, shuffle=True)
         print("=======================================================================\n\n")
@@ -135,7 +135,7 @@ class trainHandler():
             writer1.add_scalar("loss", loss, global_step=epoch)
 
             # validate model
-            with torch.no_grad:
+            with torch.no_grad():
                 topn_rate = validation(self.model, top_n=5)
                 writer1.add_scalar("topn_rate", topn_rate, global_step=epoch)
 
@@ -169,12 +169,12 @@ if __name__ == '__main__':
     range_images_folder = config["data_root"]["png_files"]
     ground_truth_folder = config["data_root"]["gt_overlaps"]
     weights_folder = config["data_root"]["weights"]
-    training_seqs = config["seqs"]["train"]
+    train_seqs = config["seqs"]["train"]
     parameters = params['learning']
     # ============================================================================
 
     overlaps_folder = [os.path.join(ground_truth_folder, seq, 'overlaps_train.npz') for seq in ['botanical_garden']]
-    img_folder = '/media/vectr/T9/Dataset/overlap_transformer/png_files/900'
+    img_folder = os.path.join(range_images_folder, '900')
     model_dir = '/home/vectr/PycharmProjects/lidar_learning/model'
 
     """
@@ -190,6 +190,6 @@ if __name__ == '__main__':
             train_set: traindata_npzfiles (alone the lines of OverlapNet).
             training_seqs: sequences number for training (alone the lines of OverlapNet).
     """
-    train_handler = trainHandler(params=parameters, img_folder=range_images_folder, overlaps_folder=overlaps_folder,
+    train_handler = trainHandler(params=parameters, img_folder=img_folder, overlaps_folder=overlaps_folder,
                                  weights_folder=weights_folder)
     train_handler.train()
