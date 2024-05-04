@@ -87,7 +87,6 @@ class trainHandler():
             #     neg_sample_batch = neg_sample_batch[:num_neg, :, :, :]
 
             input_batch = torch.cat((anchor_batch, pos_sample_batch, neg_sample_batch), dim=0)
-            input_batch.requires_grad_(True)    # no idea why require gradient, does not matter here
 
             output_batch = self.model(input_batch)
             o1, o2, o3 = torch.split(output_batch, [1, num_pos, num_neg], dim=0)
@@ -130,6 +129,8 @@ class trainHandler():
         print("\n\n=======================================================================")
 
         for epoch in range(start_epoch, start_epoch+epochs):
+            print("\n=======================================================================")
+            print(f'training with epoch: {epoch}')
             loss = self.train()
             self.scheduler.step()
             writer1.add_scalar("loss", loss, global_step=epoch)
@@ -167,15 +168,15 @@ if __name__ == '__main__':
     params = yaml.safe_load(open(parameters_path))
 
     range_images_folder = config["data_root"]["png_files"]
-    ground_truth_folder = config["data_root"]["gt_overlaps"]
+    gt_overlaps_folder = config["data_root"]["gt_overlaps"]
     weights_folder = config["data_root"]["weights"]
     train_seqs = config["seqs"]["train"]
     parameters = params['learning']
     # ============================================================================
 
-    overlaps_folder = [os.path.join(ground_truth_folder, seq, 'overlaps_train.npz') for seq in ['botanical_garden']]
-    img_folder = os.path.join(range_images_folder, '900')
-    model_dir = '/home/vectr/PycharmProjects/lidar_learning/model'
+    train_overlaps_folder = [os.path.join(gt_overlaps_folder, seq, 'overlaps_train.npz') for seq in train_seqs]
+    train_img_folder = os.path.join(range_images_folder, '900')
+    # model_dir = '/home/vectr/PycharmProjects/lidar_learning/model'
 
     """
         trainHandler to handle with training process.
@@ -190,6 +191,6 @@ if __name__ == '__main__':
             train_set: traindata_npzfiles (alone the lines of OverlapNet).
             training_seqs: sequences number for training (alone the lines of OverlapNet).
     """
-    train_handler = trainHandler(params=parameters, img_folder=img_folder, overlaps_folder=overlaps_folder,
+    train_handler = trainHandler(params=parameters, img_folder=train_img_folder, overlaps_folder=train_overlaps_folder,
                                  weights_folder=weights_folder)
-    train_handler.train()
+    train_handler.train_eval()

@@ -16,7 +16,7 @@ seqs:
   all: ["bomb_shelter", "botanical_garden", "bruin_plaza", "court_of_sciences", "dickson_court", "geo_loop",
         "kerckhoff", "luskin", "royce_hall", "sculpture_garden"]
   train: ["bomb_shelter", "botanical_garden", "bruin_plaza", "court_of_sciences", "dickson_court", "kerckhoff"]
-  valid: ["botanical_garden"]
+  valid: ["geo_loop"]
   test: ["geo_loop", "royce_hall", "sculpture_garden"]
 
 # used for old version test

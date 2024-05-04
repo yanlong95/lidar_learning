@@ -82,7 +82,7 @@ def save_checkpoint(state, is_best, checkpoint):
         checkpoint: (string) folder where the parameters are saved
     """
     file_path = os.path.join(checkpoint, 'last.pth.tar')
-    if not os.path.exists(file_path):
+    if not os.path.exists(checkpoint):
         print(f'Checkpoint not found! Creating new folder {checkpoint}.')
         os.makedirs(checkpoint)
     else:

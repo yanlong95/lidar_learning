@@ -3,22 +3,14 @@ import tqdm
 import faiss
 import yaml
 import torch
-import cv2
+import numpy as np
 from modules.ot_copy.modules.overlap_transformer_haomo import featureExtracter
 from modules.ot_copy.tools.utils.utils import *
+from tools.fileloader import read_image, load_xyz_rot
 np.set_printoptions(threshold=sys.maxsize)
 
 
-def read_image(path):
-    depth_data = np.array(cv2.imread(path, cv2.IMREAD_GRAYSCALE))
-    depth_data_tensor = torch.from_numpy(depth_data).type(torch.FloatTensor).cuda()
-    depth_data_tensor = torch.unsqueeze(depth_data_tensor, dim=0)
-    depth_data_tensor = torch.unsqueeze(depth_data_tensor, dim=0)
-
-    return depth_data_tensor
-
-
-def validation(amodel, top_n=5):
+def validation(model, top_n=5):
     # ===============================================================================
     # loading paths and parameters
     config_filename = '/home/vectr/PycharmProjects/lidar_learning/configs/config.yml'
@@ -26,33 +18,64 @@ def validation(amodel, top_n=5):
     valid_scans_folder = config['data_root']['png_files']
     ground_truth_folder = config['data_root']['gt_overlaps']
     valid_seq = config['seqs']['valid'][0]
+
+    poses_folder = config['data_root']['poses']
+    keyframes_folder = config['data_root']['keyframes']
     # ===============================================================================
+    device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
     valid_scan_paths = load_files(os.path.join(valid_scans_folder, '900', valid_seq))
     ground_truth_paths = os.path.join(ground_truth_folder, valid_seq, 'overlaps.npz')
     ground_truth_overlaps = np.load(ground_truth_paths)['arr_0']
 
+    # find the closest top_n keyframes for each scan
+    poses_paths = os.path.join(poses_folder, valid_seq, 'poses.txt')
+    poses_kf_paths = os.path.join(keyframes_folder, valid_seq, 'poses/poses_kf.txt')
+    img_kf_paths = load_files(os.path.join(keyframes_folder, valid_seq, 'png_files/900'))
+
+    xyz, _ = load_xyz_rot(poses_paths)
+    xyz_kf, _ = load_xyz_rot(poses_kf_paths)
+
+    index_dists = faiss.IndexFlatL2(3)
+    index_dists.add(xyz_kf)
+    D_dists, I_dists = index_dists.search(xyz, top_n)
+
+    # calculate descriptors and searching
     with torch.no_grad():
         num_scans = len(valid_scan_paths)
+        num_kf = len(xyz_kf)
 
         # calculate all descriptors
         descriptors = np.zeros((num_scans, 256))
         for i in tqdm.tqdm(range(num_scans)):
             # load a scan
-            current_batch = read_image(valid_scan_paths[i])
+            current_batch = read_image(valid_scan_paths[i], device)
             current_batch = torch.cat((current_batch, current_batch), dim=0)        # no idea why, keep it now
 
             # calculate descriptor
-            amodel.eval()
-            current_descriptor = amodel(current_batch)
+            model.eval()
+            current_descriptor = model(current_batch)
             descriptors[i, :] = current_descriptor[0, :].cpu().detach().numpy()
-
         descriptors = descriptors.astype('float32')
 
-        # searching
+        # calculate keyframe descriptors
+        descriptors_kf = np.zeros((num_kf, 256))
+        for i in range(num_kf):
+            current_batch = read_image(img_kf_paths[i], device)
+            current_batch = torch.cat((current_batch, current_batch), dim=0)        # no idea why, keep it now
+
+            model.eval()
+            current_descriptor = model(current_batch)
+            descriptors_kf[i, :] = current_descriptor[0, :].cpu().detach().numpy()
+        descriptors_kf = descriptors_kf.astype('float32')
+
+        # searching (all scans and keyframes)
         d = descriptors.shape[1]
         index = faiss.IndexFlatL2(d)
         index.add(descriptors)
+
+        index_kf = faiss.IndexFlatL2(d)
+        index_kf.add(descriptors_kf)
 
         # search the closest descriptors for each one in the validation set
         """
@@ -60,14 +83,16 @@ def validation(amodel, top_n=5):
         a. search the closest descriptors, if their overlap values greater than the threshold, then positive prediction
            (not recommend as most of top_n scans are close to current scan even for a random model. choose a large top_n
            if you want to use this way).
-        b. search top_n positive and negative descriptors, if distances between the all positive descriptors are smaller 
-           than the negative descriptors, then positive prediction.  
+        b. search top_n positive and negative descriptors, if distances between the all positive descriptors are smaller
+           than the negative descriptors, then positive prediction.
+        c. add another valid method. choose the top n closest keyframes based on the distance of descriptors, if any 
+           chosen keyframe is the closest keyframe based on global distance, then a correct prediction.
         """
-        # TODO: add another valid method. choose the top n closest keyframes based on the distance of descriptors, if
-        #       any chosen keyframe is the closest keyframe based on global distance, then a correct prediction.
 
-        recall = True
         num_pos_pred = 0
+        # method = 'overlap_thresh'         # a
+        method = 'pos_neg_descriptors'      # b
+        # method = 'closest_keyframe'       # c
 
         for i in range(num_scans):
             ground_truth = ground_truth_overlaps[i]
@@ -77,7 +102,7 @@ def validation(amodel, top_n=5):
             # in case no enough positive scans
             top_n = min(len(pos_scans), top_n)
 
-            if recall:
+            if method == 'overlap_thresh':
                 D, I = index.search(descriptors[i, :].reshape(1, -1), top_n)
 
                 if I[:, 0] == i:
@@ -87,7 +112,7 @@ def validation(amodel, top_n=5):
 
                 if np.all(ground_truth[min_index, 2] > ground_truth[min_index, 3]):
                     num_pos_pred += 1
-            else:
+            elif method == 'pos_neg_descriptors':
                 pos_indices = np.random.choice(pos_scans[:, 1], top_n, replace=False).astype(int)
                 neg_indices = np.random.choice(neg_scans[:, 1], top_n, replace=False).astype(int)
 
@@ -103,16 +128,26 @@ def validation(amodel, top_n=5):
                         num_pos_pred_j += 1
                 if num_pos_pred_j == top_n:
                     num_pos_pred += 1
+            else:
+                D_kf, I_kf = index_kf.search(descriptors[i, :].reshape(1, -1), top_n)
+                min_index_kf = I_kf[:, :]
+
+                print(min_index_kf)
+
+                min_index_dists = I_dists[i, :]
+                intersection = np.intersect1d(min_index_kf, min_index_dists)
+                if intersection.size > 0:       # change to top_n // 2 for hard mode
+                    num_pos_pred += 1
 
     # precision = num_pos_pred / (top_n * num_valid)
     precision = num_pos_pred / num_scans
     # precision_neg = num_neg_pred / num_valid
-    print(f'top {top_n} precision: {precision}.')
+    print(f'top {top_n} precision: {precision}.\n')
     # print(f'top {top_n} precision_neg: {precision_neg}')
     return precision
 
 
 if __name__ == '__main__':
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
-    amodel = featureExtracter(height=32, width=900, channels=1, use_transformer=True).to(device)
-    validation(amodel)
+    model = featureExtracter(height=32, width=900, channels=1, use_transformer=True).to(device)
+    validation(model)
