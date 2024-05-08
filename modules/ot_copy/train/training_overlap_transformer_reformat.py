@@ -54,8 +54,8 @@ class trainHandler():
         self.weights_folder = weights_folder            # weight path
 
         # resume training
-        self.resume = False
-        self.restore_path = os.path.join(self.weights_folder, 'overlap_transformer_38.pth.tar')
+        self.resume = True
+        self.restore_path = os.path.join(self.weights_folder, 'last.pth.tar')
 
     def train(self):
         # set train mode
@@ -109,7 +109,7 @@ class trainHandler():
 
         if self.resume:
             checkpoint = torch.load(self.restore_path)
-            start_epoch = checkpoint['epoch']
+            start_epoch = checkpoint['epoch'] + 1
             self.model.load_state_dict(checkpoint['state_dict'])
             self.optimizer.load_state_dict(checkpoint['optimizer'])
             best_val = checkpoint['best_val']

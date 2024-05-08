@@ -374,18 +374,18 @@ if __name__ == '__main__':
     descriptors_path = config["data_root"]["descriptors"]
     predictions_path = config["data_root"]["predictions"]
     weights_path = config["data_root"]["weights"]
-    test_seq = config["seqs"]["test"][1]
+    test_seq = config["seqs"]["test"][2]
     # ============================================================================
 
     test_frame_img_path = os.path.join(frame_img_path, '900', test_seq)
     test_frame_pose_path = os.path.join(frame_poses_path, test_seq, 'poses.txt')
     test_keyframe_img_path = os.path.join(keyframe_path, test_seq, 'png_files', '900')
     test_keyframe_poses_path = os.path.join(keyframe_path, test_seq, 'poses', 'poses_kf.txt')
-    test_weights_path = os.path.join(weights_path, 'overlap_transformer_50.pth.tar')
+    test_weights_path = os.path.join(weights_path, 'best.pth.tar')
     # test_weights_path = '/media/vectr/T9/Dataset/overlap_transformer/weights/pretrained_overlap_transformer_full_test50.pth.tar'
     test_descriptors_path = os.path.join(descriptors_path, test_seq)
     test_predictions_path = os.path.join(predictions_path, test_seq)
 
     testHandler(test_frame_img_path, test_frame_pose_path, test_keyframe_img_path, test_keyframe_poses_path,
                 test_weights_path, test_descriptors_path, test_predictions_path, test_selection=10,
-                load_descriptors=False, metric='euclidean')
+                load_descriptors=False, metric='voronoi')

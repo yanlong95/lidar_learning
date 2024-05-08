@@ -14,7 +14,7 @@
   "learning_rate": 5.0e-5
   "num_pos_max": 10
   "num_neg_max": 10
-  "num_epochs": 50
+  "num_epochs": 100
   "num_workers": 4
 
   "height": 32
