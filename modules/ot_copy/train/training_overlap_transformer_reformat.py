@@ -44,7 +44,7 @@ class trainHandler():
         self.learning_rate = params['learning_rate']
 
         self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-        self.model = featureExtracter(channels=self.channels, use_transformer=self.use_transformer).to(self.device)
+        self.model = featureExtracter(width=self.width, channels=self.channels, use_transformer=self.use_transformer).to(self.device)
         self.optimizer = torch.optim.Adam(self.model.parameters(), self.learning_rate)
         self.scheduler = torch.optim.lr_scheduler.StepLR(self.optimizer, step_size=5, gamma=1.0)
 
@@ -54,7 +54,7 @@ class trainHandler():
         self.weights_folder = weights_folder            # weight path
 
         # resume training
-        self.resume = True
+        self.resume = False
         self.restore_path = os.path.join(self.weights_folder, 'last.pth.tar')
 
     def train(self):
@@ -175,7 +175,7 @@ if __name__ == '__main__':
     # ============================================================================
 
     train_overlaps_folder = [os.path.join(gt_overlaps_folder, seq, 'overlaps_train.npz') for seq in train_seqs]
-    train_img_folder = os.path.join(range_images_folder, '900')
+    train_img_folder = os.path.join(range_images_folder, '512')
     # model_dir = '/home/vectr/PycharmProjects/lidar_learning/model'
 
     """

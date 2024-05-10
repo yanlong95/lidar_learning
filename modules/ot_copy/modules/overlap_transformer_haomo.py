@@ -59,7 +59,7 @@ class featureExtracter(nn.Module):
         self.sigmoid = nn.Sigmoid()
         self.softmax = nn.Softmax()
 
-        self.net_vlad = NetVLADLoupe(feature_size=1024, max_samples=900, cluster_size=64,  # before 11.12 --- 64
+        self.net_vlad = NetVLADLoupe(feature_size=1024, max_samples=width, cluster_size=64,  # before 11.12 --- 64
                                      output_dim=256, gating=True, add_batch_norm=False,   # output_dim=512
                                      is_training=True)
 

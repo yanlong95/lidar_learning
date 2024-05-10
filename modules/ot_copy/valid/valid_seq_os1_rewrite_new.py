@@ -24,14 +24,14 @@ def validation(model, top_n=5):
     # ===============================================================================
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
-    valid_scan_paths = load_files(os.path.join(valid_scans_folder, '900', valid_seq))
+    valid_scan_paths = load_files(os.path.join(valid_scans_folder, '512', valid_seq))
     ground_truth_paths = os.path.join(ground_truth_folder, valid_seq, 'overlaps.npz')
     ground_truth_overlaps = np.load(ground_truth_paths)['arr_0']
 
     # find the closest top_n keyframes for each scan
     poses_paths = os.path.join(poses_folder, valid_seq, 'poses.txt')
     poses_kf_paths = os.path.join(keyframes_folder, valid_seq, 'poses/poses_kf.txt')
-    img_kf_paths = load_files(os.path.join(keyframes_folder, valid_seq, 'png_files/900'))
+    img_kf_paths = load_files(os.path.join(keyframes_folder, valid_seq, 'png_files/512'))
 
     xyz, _ = load_xyz_rot(poses_paths)
     xyz_kf, _ = load_xyz_rot(poses_kf_paths)
