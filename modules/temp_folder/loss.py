@@ -24,7 +24,7 @@ def mean_squared_error_loss(vec1, vec2, overlaps):
     Then calculate the mean squared error between the similarity and overlaps.
 
     Args:
-        vec1: (torch.Tensor) scan1 vectors in shape (num, vec_size).
+        vec1: (torch.Tensor) scan1 vectors in shape (1, vec_size).
         vec2: (torch.Tensor) scan2 vectors in shape (num, vec_size).
         overlaps: (float) the overlaps between two vectors.
     """

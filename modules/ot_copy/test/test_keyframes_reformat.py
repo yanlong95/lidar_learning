@@ -151,6 +151,8 @@ def calc_top_n_voronoi(keyframe_poses, keyframe_descriptors, keyframe_voronoi_re
 
     index_poses = faiss.IndexIVFFlat(quantizer_poses, dim_pose, nlist, faiss.METRIC_L2)
     index_descriptors = faiss.IndexIVFFlat(quantizer_descriptors, dim_descriptor, nlist, faiss.METRIC_L2)
+    # check if descriptors are normalized !!!!!!!!!
+    # index_descriptors = faiss.IndexIVFFlat(quantizer_descriptors, dim_descriptor, nlist, faiss.METRIC_INNER_PRODUCT)
 
     if not index_poses.is_trained:
         index_poses.train(keyframe_poses)
@@ -218,6 +220,7 @@ def calc_top_n_distance(keyframe_poses, keyframe_descriptors, test_frame_poses, 
 
     # faiss search based on descriptors norm distances
     index_descriptors = faiss.IndexFlatL2(dim_descriptors)
+    # index_descriptors = faiss.IndexFlatL2(dim_descriptors, faiss.METRIC_INNER_PRODUCT)
     index_descriptors.add(keyframe_descriptors)
 
     # check prediction for each test frame
@@ -305,7 +308,7 @@ def plot_top_n_keyframes(positive_pred_indices, negative_pred_indices, top_n_cho
 def testHandler(test_frame_img_path, test_frame_poses_path, keyframes_img_path, keyframes_poses_path, weights_path,
                 descriptors_path, predictions_path, test_selection=1, load_descriptors=False, metric='euclidean'):
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
-    amodel = featureExtracter(height=32, width=900, channels=1, use_transformer=True).to(device)
+    amodel = featureExtracter(height=32, width=512, channels=1, use_transformer=True).to(device)
 
     with torch.no_grad():
         # load model
@@ -374,12 +377,12 @@ if __name__ == '__main__':
     descriptors_path = config["data_root"]["descriptors"]
     predictions_path = config["data_root"]["predictions"]
     weights_path = config["data_root"]["weights"]
-    test_seq = config["seqs"]["test"][2]
+    test_seq = config["seqs"]["test"][0]
     # ============================================================================
 
-    test_frame_img_path = os.path.join(frame_img_path, '900', test_seq)
+    test_frame_img_path = os.path.join(frame_img_path, '512', test_seq)
     test_frame_pose_path = os.path.join(frame_poses_path, test_seq, 'poses.txt')
-    test_keyframe_img_path = os.path.join(keyframe_path, test_seq, 'png_files', '900')
+    test_keyframe_img_path = os.path.join(keyframe_path, test_seq, 'png_files', '512')
     test_keyframe_poses_path = os.path.join(keyframe_path, test_seq, 'poses', 'poses_kf.txt')
     test_weights_path = os.path.join(weights_path, 'best.pth.tar')
     # test_weights_path = '/media/vectr/T9/Dataset/overlap_transformer/weights/pretrained_overlap_transformer_full_test50.pth.tar'

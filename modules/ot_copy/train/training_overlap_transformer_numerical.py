@@ -23,8 +23,9 @@ from modules.ot_copy.tools.utils.utils import *
 from modules.ot_copy.valid.valid_seq_os1_rewrite_new import validation
 import yaml
 
-from modules.ot_copy.tools.read_all_sets_reformat import overlaps_loader, read_one_batch_pos_neg
+from modules.ot_copy.tools.read_all_sets_reformat import overlaps_loader, read_one_batch_pos_neg_numerical
 from tools.utils import RunningAverage, save_checkpoint
+from tools.fileloader import load_xyz_rot
 
 
 class trainHandler():
@@ -46,7 +47,7 @@ class trainHandler():
         self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
         self.model = featureExtracter(width=self.width, channels=self.channels, use_transformer=self.use_transformer).to(self.device)
         self.optimizer = torch.optim.Adam(self.model.parameters(), self.learning_rate)
-        self.scheduler = torch.optim.lr_scheduler.StepLR(self.optimizer, step_size=20, gamma=0.3)
+        self.scheduler = torch.optim.lr_scheduler.StepLR(self.optimizer, step_size=5, gamma=1.0)
 
         # load directories
         self.img_folder = img_folder                    # images path
@@ -70,30 +71,19 @@ class trainHandler():
 
         for j in tqdm.tqdm(range(num_scans)):
             # load a batch for a single scan
-            anchor_batch, pos_sample_batch, neg_sample_batch, num_pos, num_neg = (
-                read_one_batch_pos_neg(self.img_folder, overlaps_data, j, self.channels, self.height, self.width,
-                                       self.num_pos_max, self.num_neg_max, self.device, shuffle=True))
+            (anchor_batch, pos_batch, neg_batch, pos_batch_overlaps, neg_batch_overlaps, num_pos, num_neg) = \
+                (read_one_batch_pos_neg_numerical(self.img_folder, overlaps_data, j, self.channels, self.height,
+                                                  self.width, self.num_pos_max, self.num_neg_max, self.device,
+                                                  shuffle=True))
 
             # in case no pair
             if num_pos == 0 or num_neg == 0:
                 continue
 
-            # # reduce the size of a batch
-            # if num_pos > self.num_pos_max:
-            #     num_pos = self.num_pos_max
-            #     pos_sample_batch = pos_sample_batch[:num_pos, :, :, :]
-            # if num_neg > self.num_neg_max:
-            #     num_neg = self.num_neg_max
-            #     neg_sample_batch = neg_sample_batch[:num_neg, :, :, :]
-
-            input_batch = torch.cat((anchor_batch, pos_sample_batch, neg_sample_batch), dim=0)
-
+            input_batch = torch.cat((anchor_batch, pos_batch, neg_batch), dim=0)
             output_batch = self.model(input_batch)
             o1, o2, o3 = torch.split(output_batch, [1, num_pos, num_neg], dim=0)
-            loss = PNV_loss.triplet_loss(o1, o2, o3, self.margin1, lazy=False, ignore_zero_loss=True)
-
-            if loss == -1:
-                continue
+            loss = PNV_loss.mean_squared_error_loss(o1, o2, o3, pos_batch_overlaps, neg_batch_overlaps, alpha=1.0)
 
             self.optimizer.zero_grad()
             loss.backward()
@@ -120,7 +110,7 @@ class trainHandler():
             start_epoch = 0
             best_val = 0.0
 
-        writer1 = SummaryWriter(comment=f"LR_{self.learning_rate}_schedule")
+        writer1 = SummaryWriter(comment=f"LR_{self.learning_rate}")
 
         overlaps_data = overlaps_loader(self.overlaps_folder, shuffle=True)
         print("=======================================================================\n\n")

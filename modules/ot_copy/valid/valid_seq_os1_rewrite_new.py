@@ -5,6 +5,7 @@ import yaml
 import torch
 import numpy as np
 from modules.ot_copy.modules.overlap_transformer_haomo import featureExtracter
+from modules.ot_copy.modules.loss import mean_squared_error_loss
 from modules.ot_copy.tools.utils.utils import *
 from tools.fileloader import read_image, load_xyz_rot
 np.set_printoptions(threshold=sys.maxsize)
@@ -87,12 +88,14 @@ def validation(model, top_n=5):
            than the negative descriptors, then positive prediction.
         c. add another valid method. choose the top n closest keyframes based on the distance of descriptors, if any 
            chosen keyframe is the closest keyframe based on global distance, then a correct prediction.
+        d. compute the losses for all pairs (MSE between estimated overlaps and true overlaps).
         """
 
         num_pos_pred = 0
         # method = 'overlap_thresh'         # a
         method = 'pos_neg_descriptors'      # b
         # method = 'closest_keyframe'       # c
+        # method = 'overlap'                # d
 
         for i in range(num_scans):
             ground_truth = ground_truth_overlaps[i]
@@ -128,16 +131,23 @@ def validation(model, top_n=5):
                         num_pos_pred_j += 1
                 if num_pos_pred_j == top_n:
                     num_pos_pred += 1
-            else:
+            elif method == 'closest_keyframe':
                 D_kf, I_kf = index_kf.search(descriptors[i, :].reshape(1, -1), top_n)
                 min_index_kf = I_kf[:, :]
-
-                print(min_index_kf)
-
                 min_index_dists = I_dists[i, :]
                 intersection = np.intersect1d(min_index_kf, min_index_dists)
                 if intersection.size > 0:       # change to top_n // 2 for hard mode
                     num_pos_pred += 1
+            else:
+                anchor_tensor = descriptors[i, :].reshape(1, -1)
+                pos_tensors = descriptors[pos_scans.astype(int), :]
+                neg_tensors = descriptors[neg_scans.astype(int), :]
+                pos_overlaps = torch.from_numpy(pos_scans[:, 2])
+                neg_overlaps = torch.from_numpy(neg_scans[:, 2])
+                loss = mean_squared_error_loss(anchor_tensor, pos_tensors, neg_tensors, pos_overlaps, neg_overlaps,
+                                               alpha=1.0)
+                return loss
+
 
     # precision = num_pos_pred / (top_n * num_valid)
     precision = num_pos_pred / num_scans

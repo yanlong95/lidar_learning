@@ -8,6 +8,7 @@ import torch
 import torch.nn as nn
 import os
 import numpy as np
+import torch.nn.functional as F
 
 
 def best_pos_distance(query, pos_vecs):
@@ -18,6 +19,29 @@ def best_pos_distance(query, pos_vecs):
     min_pos, _ = diff.min(0)
     max_pos, _ = diff.max(0)
     return min_pos, max_pos
+
+
+def mean_squared_error_loss(anchor_vector, pos_vectors, neg_vectors, pos_overlaps, neg_overlaps, alpha=1.0):
+    """
+    First calculate the cosine similarity between two batch of vectors.
+    Then calculate the mean squared error between the similarity and overlaps.
+
+    Args:
+        anchor_vector: (torch.Tensor) scan1 vectors in shape (1, vec_size).
+        pos_vectors: (torch.Tensor) scan2 vectors in shape (num, vec_size).
+        neg_vectors: (torch.Tensor) scan3 vectors in shape (num, vec_size).
+        pos_overlaps: (torch.Tensor) the overlaps between two anchor vector and pos_vectors (1, num_pos).
+        neg_overlaps: (torch.Tensor) the overlaps between two anchor vector and neg_vectors (1, num_neg).
+        alpha: (float) the parameter balance the loss between positive loss and negative loss.
+    """
+    num = pos_vectors.shape[0] + neg_vectors.shape[0]
+    pos_similarities = F.cosine_similarity(anchor_vector, pos_vectors, dim=1)
+    neg_similarities = F.cosine_similarity(anchor_vector, neg_vectors, dim=1)
+
+    loss_pos = F.mse_loss(pos_similarities, pos_overlaps, reduction='sum')
+    loss_neg = F.mse_loss(neg_similarities, neg_overlaps, reduction='sum')
+    loss = (loss_pos + alpha * loss_neg) / num
+    return loss
 
 
 def triplet_loss(q_vec, pos_vecs, neg_vecs, margin, use_min=False, lazy=False, ignore_zero_loss=False):
