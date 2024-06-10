@@ -78,14 +78,6 @@ class trainHandler():
             if num_pos == 0 or num_neg == 0:
                 continue
 
-            # # reduce the size of a batch
-            # if num_pos > self.num_pos_max:
-            #     num_pos = self.num_pos_max
-            #     pos_sample_batch = pos_sample_batch[:num_pos, :, :, :]
-            # if num_neg > self.num_neg_max:
-            #     num_neg = self.num_neg_max
-            #     neg_sample_batch = neg_sample_batch[:num_neg, :, :, :]
-
             input_batch = torch.cat((anchor_batch, pos_sample_batch, neg_sample_batch), dim=0)
 
             output_batch = self.model(input_batch)

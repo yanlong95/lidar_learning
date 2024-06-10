@@ -6,8 +6,9 @@ import faiss
 import tqdm
 import numpy as np
 import open3d as o3d
+import cv2
 
-from keyframe_detector.modules.overlap_transformer_32 import featureExtracter
+# from keyframe_detector.modules.overlap_transformer_32 import featureExtracter
 
 
 def load_keyframes_descriptors():
@@ -138,35 +139,102 @@ def compute_top_n_keyframes(keyframes, frame, top_n=5, device='cuda'):
 
 
 if __name__ == "__main__":
-    import matplotlib.pyplot as plt
-    import time
+    # import matplotlib.pyplot as plt
+    # import time
+    #
+    # from tools.fileloader import load_xyz_rot, read_pc, load_files
+    # keyframe_poses, keyframe_rot = load_xyz_rot('/media/vectr/vectr3/Dataset/arl/poses/parking-lot/poses_kf.txt')
+    # # plt.scatter(keyframe_poses[:,0], keyframe_poses[:,1])
+    # # plt.show()
+    #
+    # keyframes_pcd_path = load_files('/media/vectr/vectr3/Dataset/arl/pcd_files/parking-lot_keyframes')
+    # keyframe2_path = keyframes_pcd_path[2]
+    # keyframe0_path = keyframes_pcd_path[0]
+    # keyframe1_path = keyframes_pcd_path[1]
+    # keyframe3_path = keyframes_pcd_path[3]
+    # keyframe9_path = keyframes_pcd_path[-1]
+    #
+    # keyframe2 = read_pc(keyframe2_path)
+    # keyframe0 = read_pc(keyframe0_path)
+    # keyframe1 = read_pc(keyframe1_path)
+    # keyframe3 = read_pc(keyframe3_path)
+    # keyframe9 = read_pc(keyframe9_path)
+    #
+    # keyframe2_xyz = keyframe_poses[2, :]
+    # keyframe0_xyz = keyframe_poses[0, :]
+    # keyframe1_xyz = keyframe_poses[1, :]
+    # keyframe3_xyz = keyframe_poses[3, :]
+    # keyframe9_xyz = keyframe_poses[9, :]
+    #
+    # keyframe2_rot = keyframe_rot[2, :]
+    # keyframe0_rot = keyframe_rot[0, :]
+    # keyframe1_rot = keyframe_rot[1, :]
+    # keyframe3_rot = keyframe_rot[3, :]
+    # keyframe9_rot = keyframe_rot[9, :]
+    #
+    # t10 = keyframe1_rot
+    # t20 = keyframe2_rot
+    #
+    # # keyframe10 = (keyframe1 - keyframe1_xyz) @ np.linalg.inv(keyframe1_rot)
+    # # keyframe20 = (keyframe2 - keyframe2_xyz) @ np.linalg.inv(keyframe2_rot)
+    # # keyframe30 = (keyframe3 - keyframe3_xyz) @ np.linalg.inv(keyframe3_rot)
+    # # keyframe90 = (keyframe9 - keyframe9_xyz) @ np.linalg.inv(keyframe9_rot)
+    #
+    # keyframe10 = keyframe1 @ np.linalg.inv(keyframe1_rot) + keyframe1_xyz
+    # keyframe20 = keyframe2 @ np.linalg.inv(keyframe2_rot) + keyframe2_xyz
+    # keyframe30 = keyframe3 @ np.linalg.inv(keyframe3_rot)+ keyframe3_xyz
+    # keyframe90 = keyframe9 @ np.linalg.inv(keyframe9_rot) + keyframe9_xyz
+    #
+    # keyframe01239 = np.concatenate((keyframe0, keyframe10, keyframe20, keyframe30, keyframe90), axis=0)
+    # parameters_path = '/home/vectr/PycharmProjects/lidar_learning/configs/parameters.yml'
+    # parameters = yaml.safe_load(open(parameters_path))
+    # image = compute_range_image(keyframe01239, parameters['lidar'], 1024, 128)
+    # plt.imshow(image)
+    # plt.show()
 
-    parameters_path = '/home/vectr/ws/src/keyframe_detector/src/keyframe_detector/configs/parameters.yml'
-    paths = [os.path.join(root, file) for root, dirs, files in os.walk('/home/vectr/Desktop/pcd') for file in files]
+    seq = 'e4_1'
+    # pcd_files = f'/media/vectr/vectr3/Dataset/loop_closure_detection/keyframes/{seq}/pcd_files'
+    # png_files = f'/media/vectr/vectr3/Dataset/loop_closure_detection/keyframes/{seq}/png_files/512'
+    pcd_files = f'/media/vectr/vectr3/Dataset/loop_closure_detection/pcd_files/{seq}'
+    png_files = f'/media/vectr/vectr3/Dataset/loop_closure_detection/png_files/{seq}/512'
+
+    # parameters_path = '/home/vectr/ws/src/keyframe_detector/src/keyframe_detector/configs/parameters.yml'
+    parameters_path = '/home/vectr/PycharmProjects/lidar_learning/configs/parameters.yml'
+    paths = [os.path.join(root, file) for root, dirs, files in os.walk(pcd_files) for file in files]
     paths.sort()
     parameters = yaml.safe_load(open(parameters_path))
 
-	# image plots
-    # for i, pc_path in enumerate(paths):
-    # 	pc = o3d.io.read_point_cloud(pc_path)
-    # 	pc = np.asarray(pc.points)
-    # 	image = compute_range_image(pc, parameters['lidar'], 1024, 128)
-
-    # 	plt.figure(1)
-    # 	plt.clf()
-    # 	plt.imshow(image)
-    # 	plt.title(f'image: {i}')
-    # 	plt.pause(0.01)
-
-    device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
-    model = featureExtracter(height=32, width=900, channels=1, use_transformer=True).to(device)
-    checkpoint = torch.load('/media/vectr/vectr3/Dataset/overlap_transformer/weights/weights_new/best.pth.tar')
-    model.load_state_dict(checkpoint['state_dict'])
-    model.eval()
-
-    for path in tqdm.tqdm(paths[:500]):
-        pc = o3d.io.read_point_cloud(path)
+    import matplotlib.pyplot as plt
+    # image plots
+    for i, pc_path in tqdm.tqdm(enumerate(paths)):
+        pc = o3d.io.read_point_cloud(pc_path)
         pc = np.asarray(pc.points)
-        pc = torch.from_numpy(pc).to(device)
-        image = compute_range_image_tensor(pc, parameters['lidar'], 900, 32, device)
-        descriptor = compute_descriptor(model, image, device)
+        image = compute_range_image(pc, parameters['lidar'], 512, 32)
+
+        # normalize the image
+        normalize = False
+        if normalize:
+            image = image / np.max(image)
+
+        # save the projection as an image
+        filename = os.path.join(png_files, f'{str(i).zfill(6)}.png')
+        cv2.imwrite(filename, image)
+
+        plt.figure(1)
+        plt.clf()
+        plt.imshow(image)
+        plt.title(f'image: {i}')
+        plt.pause(0.01)
+    #
+    # # device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+    # # model = featureExtracter(height=32, width=900, channels=1, use_transformer=True).to(device)
+    # # checkpoint = torch.load('/media/vectr/vectr3/Dataset/overlap_transformer/weights/weights_new/best.pth.tar')
+    # # model.load_state_dict(checkpoint['state_dict'])
+    # # model.eval()
+    # #
+    # # for path in tqdm.tqdm(paths[:500]):
+    # #     pc = o3d.io.read_point_cloud(path)
+    # #     pc = np.asarray(pc.points)
+    # #     pc = torch.from_numpy(pc).to(device)
+    # #     image = compute_range_image_tensor(pc, parameters['lidar'], 900, 32, device)
+    # #     descriptor = compute_descriptor(model, image, device)

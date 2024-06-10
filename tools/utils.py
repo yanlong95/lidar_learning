@@ -91,6 +91,7 @@ def save_checkpoint(state, is_best, checkpoint):
     torch.save(state, file_path)
 
     if is_best:
+        print(f'Saving best model...')
         shutil.copyfile(file_path, os.path.join(checkpoint, 'best.pth.tar'))
 
 

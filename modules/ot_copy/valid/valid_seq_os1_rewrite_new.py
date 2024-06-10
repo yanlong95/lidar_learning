@@ -139,14 +139,17 @@ def validation(model, top_n=5):
                 if intersection.size > 0:       # change to top_n // 2 for hard mode
                     num_pos_pred += 1
             else:
-                anchor_tensor = descriptors[i, :].reshape(1, -1)
-                pos_tensors = descriptors[pos_scans.astype(int), :]
-                neg_tensors = descriptors[neg_scans.astype(int), :]
-                pos_overlaps = torch.from_numpy(pos_scans[:, 2])
-                neg_overlaps = torch.from_numpy(neg_scans[:, 2])
+                pos_indices = pos_scans[:, 1].astype(int)
+                neg_indices = np.random.choice(neg_scans[:, 1], len(pos_scans), replace=False).astype(int)  # balance
+                anchor_tensor = torch.tensor(descriptors[i, :].reshape(1, -1)).to(device)
+                pos_tensors = torch.tensor(descriptors[pos_indices, :]).to(device)
+                neg_tensors = torch.tensor(descriptors[neg_indices, :]).to(device)
+                pos_overlaps = torch.from_numpy(ground_truth[pos_indices, 2]).to(device)
+                neg_overlaps = torch.from_numpy(ground_truth[neg_indices, 2]).to(device)
                 loss = mean_squared_error_loss(anchor_tensor, pos_tensors, neg_tensors, pos_overlaps, neg_overlaps,
                                                alpha=1.0)
-                return loss
+                print(f'loss: {loss.item()}')
+                return loss.item()
 
 
     # precision = num_pos_pred / (top_n * num_valid)

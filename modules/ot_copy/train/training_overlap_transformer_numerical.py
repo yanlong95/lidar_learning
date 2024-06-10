@@ -25,7 +25,6 @@ import yaml
 
 from modules.ot_copy.tools.read_all_sets_reformat import overlaps_loader, read_one_batch_pos_neg_numerical
 from tools.utils import RunningAverage, save_checkpoint
-from tools.fileloader import load_xyz_rot
 
 
 class trainHandler():
@@ -39,15 +38,15 @@ class trainHandler():
         self.use_transformer = params['use_transformer']
 
         self.num_epochs = params['num_epochs']
-        self.num_pos_max = params['num_pos_max']
-        self.num_neg_max = params['num_neg_max']
+        self.num_pos_max = params['num_pos_max_overlap']
+        self.num_neg_max = params['num_neg_max_overlap']
         self.margin1 = params['margin1']
-        self.learning_rate = params['learning_rate']
+        self.learning_rate = params['learning_rate_overlap']
 
         self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
         self.model = featureExtracter(width=self.width, channels=self.channels, use_transformer=self.use_transformer).to(self.device)
         self.optimizer = torch.optim.Adam(self.model.parameters(), self.learning_rate)
-        self.scheduler = torch.optim.lr_scheduler.StepLR(self.optimizer, step_size=5, gamma=1.0)
+        self.scheduler = torch.optim.lr_scheduler.StepLR(self.optimizer, step_size=15, gamma=0.5)
 
         # load directories
         self.img_folder = img_folder                    # images path
@@ -55,7 +54,7 @@ class trainHandler():
         self.weights_folder = weights_folder            # weight path
 
         # resume training
-        self.resume = False
+        self.resume = True
         self.restore_path = os.path.join(self.weights_folder, 'last.pth.tar')
 
     def train(self):
@@ -108,9 +107,9 @@ class trainHandler():
         else:
             print("Training From Scratch ...")
             start_epoch = 0
-            best_val = 0.0
+            best_val = sys.maxsize
 
-        writer1 = SummaryWriter(comment=f"LR_{self.learning_rate}")
+        writer1 = SummaryWriter(comment=f"LR_{self.learning_rate}_overlap")
 
         overlaps_data = overlaps_loader(self.overlaps_folder, shuffle=True)
         print("=======================================================================\n\n")
@@ -123,16 +122,16 @@ class trainHandler():
             print(f'training with epoch: {epoch}')
             loss = self.train()
             self.scheduler.step()
-            writer1.add_scalar("loss", loss, global_step=epoch)
+            writer1.add_scalar("loss_train", loss, global_step=epoch)
 
             # validate model
             with torch.no_grad():
-                topn_rate = validation(self.model, top_n=5)
-                writer1.add_scalar("topn_rate", topn_rate, global_step=epoch)
+                loss_val = validation(self.model, top_n=5)
+                writer1.add_scalar("loss_val", loss_val, global_step=epoch)
 
             # check if current model has the best validation rate
-            if topn_rate >= best_val:
-                best_val = topn_rate
+            if loss_val <= best_val:
+                best_val = loss_val
                 is_best = True
             else:
                 is_best = False

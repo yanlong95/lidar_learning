@@ -12,9 +12,12 @@
 
 "learning":
   "learning_rate": 5.0e-5
-  "num_pos_max": 20
-  "num_neg_max": 20
-  "num_epochs": 50
+  "learning_rate_overlap": 1.0e-4
+  "num_pos_max": 30
+  "num_pos_max_overlap": 20
+  "num_neg_max": 30
+  "num_neg_max_overlap": 10
+  "num_epochs": 100
   "num_workers": 4
 
   "height": 32
