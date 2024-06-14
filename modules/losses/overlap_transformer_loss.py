@@ -3,6 +3,15 @@ import torch.nn as nn
 import torch.nn.functional as F
 
 
+def compute_distance(v1, v2, axis=1, metric='euclidean'):
+    if metric == 'euclidean':
+        pass
+    elif metric == 'cosine':
+        pass
+    else:
+        raise ValueError('Invalid metric! Choose either "euclidean" or "cosine".')
+
+
 def best_pos_distance(query, pos_vecs, axis=1):
     """
     Find the closest positive vector between query and pos_vecs set.
@@ -61,6 +70,7 @@ def triplet_loss(q_vec, pos_vecs, neg_vecs, margin, use_min=False, lazy=False, i
     negative = ((neg_vecs - q_vec) ** 2).sum(1).unsqueeze(1)
 
     # negative if correctly distinguish, only count fail pairs
+    print(torch.linalg.norm(pos_vecs, dim=1))
     loss = margin + positive - negative
     loss = loss.clamp(min=0.0)
 
@@ -157,8 +167,6 @@ if __name__ == '__main__':
     pos_vectors = torch.tensor([1, 2, 3]).repeat(3, 1).transpose(0, 1)
     neg_vectors = torch.tensor([0.95, 1.7, 3.8]).repeat(3, 1).transpose(0, 1)
     neg_vector_rand = neg_vectors[torch.randperm(neg_vectors.size(0))][0]
-
-    print(neg_vector_rand)
 
     tri_loss = triplet_loss(q, pos_vectors, neg_vectors, margin=0.5)
     quad_loss = quadruplet_loss(q, pos_vectors, neg_vectors, neg_vector_rand, 0.5, 0.5)

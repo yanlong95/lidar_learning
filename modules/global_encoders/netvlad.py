@@ -101,6 +101,7 @@ class NetVLADLoupe(nn.Module):
         if self.gating:
             vlad = self.context_gating(vlad)
 
+        vlad = F.normalize(vlad, p=2, dim=1)
         return vlad
 
 

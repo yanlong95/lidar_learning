@@ -3,7 +3,6 @@ import torch.nn as nn
 
 from modules.local_encoders.overlap_net_leg_32 import OverlapNetLeg32
 from modules.global_encoders.netvlad import NetVLADLoupe
-# from modules.ot_copy.modules.netvlad import NetVLADLoupe
 
 
 class OverlapTransformer32(nn.Module):
