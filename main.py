@@ -40,8 +40,8 @@ if __name__ == "__main__":
     # load data
     logger.info('Loading the datasets...')
 
-    # fetch loss function and metrics
-    logger.info('Fetching loss function and criterion...')
+    # fetch losses function and metrics
+    logger.info('Fetching losses function and criterion...')
 
     # train model
     logger.info('Loading model...')

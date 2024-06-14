@@ -14,7 +14,7 @@ if p not in sys.path:
 from matplotlib import pyplot as plt
 import torch
 import numpy as np
-from modules.temp_folder.overlap_transformer import featureExtracter
+from modules.overlap_transformer import featureExtracter
 from tools.read_samples import read_one_need_from_seq
 np.set_printoptions(threshold=sys.maxsize)
 from tools.utils.utils import *

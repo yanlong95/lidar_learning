@@ -1,29 +1,24 @@
-#!/usr/bin/env python3
-# Developed by Junyi Ma, Xieyuanli Chen, and Jun Zhang
-# This file is covered by the LICENSE file in the root of the project OverlapTransformer:
-# https://github.com/haomo-ai/OverlapTransformer/
-# Brief: train OverlapTransformer with KITTI sequences
+"""
+Code taken from https://github.com/haomo-ai/OverlapTransformer/. The framework has been rewritten to avoid the for
+loop searching which used to find the anchor-positive-negative batch.
+"""
+# p = os.path.dirname(os.path.dirname((os.path.abspath(__file__))))
+# if p not in sys.path:
+#     sys.path.append(p)
+# sys.path.append('../tools/')
+# sys.path.append('../modules/')
 
 import os
 import sys
 import tqdm
-
-p = os.path.dirname(os.path.dirname((os.path.abspath(__file__))))
-if p not in sys.path:
-    sys.path.append(p)
-sys.path.append('../tools/')
-sys.path.append('../modules/')    
+import yaml
 import torch
 import numpy as np
 from tensorboardX import SummaryWriter
-from modules.ot_copy.modules.overlap_transformer_haomo import featureExtracter
-np.set_printoptions(threshold=sys.maxsize)
-import modules.ot_copy.modules.loss as PNV_loss
-from modules.ot_copy.tools.utils.utils import *
-from modules.ot_copy.valid.valid_seq_os1_rewrite_new import validation
-import yaml
-
-from modules.ot_copy.tools.read_all_sets_reformat import overlaps_loader, read_one_batch_pos_neg
+from modules.overlap_transformer import OverlapTransformer32
+from modules.losses.overlap_transformer_loss import triplet_loss
+from valid.overlap_transformer_valid import validation
+from tools.read_datasets import overlaps_loader, read_one_batch_pos_neg
 from tools.utils import RunningAverage, save_checkpoint
 
 
@@ -44,7 +39,8 @@ class trainHandler():
         self.learning_rate = params['learning_rate']
 
         self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-        self.model = featureExtracter(width=self.width, channels=self.channels, use_transformer=self.use_transformer).to(self.device)
+        self.model = OverlapTransformer32(width=self.width, channels=self.channels,
+                                          use_transformer=self.use_transformer).to(self.device)
         self.optimizer = torch.optim.Adam(self.model.parameters(), self.learning_rate)
         self.scheduler = torch.optim.lr_scheduler.StepLR(self.optimizer, step_size=20, gamma=0.3)
 
@@ -82,7 +78,7 @@ class trainHandler():
 
             output_batch = self.model(input_batch)
             o1, o2, o3 = torch.split(output_batch, [1, num_pos, num_neg], dim=0)
-            loss = PNV_loss.triplet_loss(o1, o2, o3, self.margin1, lazy=False, ignore_zero_loss=True)
+            loss = triplet_loss(o1, o2, o3, self.margin1, lazy=False, ignore_zero_loss=True)
 
             if loss == -1:
                 continue
@@ -105,23 +101,23 @@ class trainHandler():
             self.model.load_state_dict(checkpoint['state_dict'])
             self.optimizer.load_state_dict(checkpoint['optimizer'])
             best_val = checkpoint['best_val']
-            print(f"Resuming from {self.restore_path}.")
+            train_start_str = f"Resuming from {self.restore_path}."
 
         else:
-            print("Training From Scratch ...")
             start_epoch = 0
             best_val = 0.0
+            train_start_str = "Training From Scratch."
 
         writer1 = SummaryWriter(comment=f"LR_{self.learning_rate}_schedule")
 
         overlaps_data = overlaps_loader(self.overlaps_folder, shuffle=True)
-        print("=======================================================================\n\n")
-        print("training with seq: ", np.unique(overlaps_data[:, 1]))
-        print("total pairs: ", np.sum(overlaps_data[:, 3]) + np.sum(overlaps_data[:, 4]))
-        print("\n\n=======================================================================")
+        print("=======================================================================\n")
+        print(train_start_str)
+        print("Training with seq: ", np.unique(overlaps_data[:, 1]))
+        print("Total pairs: ", np.sum(overlaps_data[:, 3]) + np.sum(overlaps_data[:, 4]))
+        print("\n=======================================================================")
 
         for epoch in range(start_epoch, start_epoch+epochs):
-            print("\n=======================================================================")
             print(f'training with epoch: {epoch}')
             loss = self.train()
             self.scheduler.step()

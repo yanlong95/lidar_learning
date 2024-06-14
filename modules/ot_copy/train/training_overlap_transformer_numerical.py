@@ -61,7 +61,7 @@ class trainHandler():
         # set train mode
         self.model.train()
 
-        # count loss for each epoch
+        # count losses for each epoch
         loss_avg = RunningAverage()
 
         # load all training pairs

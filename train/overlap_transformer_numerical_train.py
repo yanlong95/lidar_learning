@@ -16,14 +16,13 @@ sys.path.append('../modules/')
 import torch
 import numpy as np
 from tensorboardX import SummaryWriter
-from modules.ot_copy.modules.overlap_transformer_haomo import featureExtracter
-np.set_printoptions(threshold=sys.maxsize)
-import modules.ot_copy.modules.loss as PNV_loss
-from modules.ot_copy.tools.utils.utils import *
-from modules.ot_copy.valid.valid_seq_os1_rewrite_new import validation
+from modules.overlap_transformer import OverlapTransformer32
+from modules.losses.overlap_transformer_loss import mean_squared_error_loss
+# from modules.ot_copy.tools.utils.utils import *
+from valid.overlap_transformer_valid import validation
 import yaml
 
-from modules.ot_copy.tools.read_all_sets_reformat import overlaps_loader, read_one_batch_pos_neg
+from tools.read_datasets import overlaps_loader, read_one_batch_pos_neg_numerical
 from tools.utils import RunningAverage, save_checkpoint
 
 
@@ -38,15 +37,15 @@ class trainHandler():
         self.use_transformer = params['use_transformer']
 
         self.num_epochs = params['num_epochs']
-        self.num_pos_max = params['num_pos_max']
-        self.num_neg_max = params['num_neg_max']
+        self.num_pos_max = params['num_pos_max_overlap']
+        self.num_neg_max = params['num_neg_max_overlap']
         self.margin1 = params['margin1']
-        self.learning_rate = params['learning_rate']
+        self.learning_rate = params['learning_rate_overlap']
 
         self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-        self.model = featureExtracter(width=self.width, channels=self.channels, use_transformer=self.use_transformer).to(self.device)
+        self.model = OverlapTransformer32(width=self.width, channels=self.channels, use_transformer=self.use_transformer).to(self.device)
         self.optimizer = torch.optim.Adam(self.model.parameters(), self.learning_rate)
-        self.scheduler = torch.optim.lr_scheduler.StepLR(self.optimizer, step_size=20, gamma=0.3)
+        self.scheduler = torch.optim.lr_scheduler.StepLR(self.optimizer, step_size=15, gamma=0.5)
 
         # load directories
         self.img_folder = img_folder                    # images path
@@ -54,7 +53,7 @@ class trainHandler():
         self.weights_folder = weights_folder            # weight path
 
         # resume training
-        self.resume = False
+        self.resume = True
         self.restore_path = os.path.join(self.weights_folder, 'last.pth.tar')
 
     def train(self):
@@ -70,22 +69,19 @@ class trainHandler():
 
         for j in tqdm.tqdm(range(num_scans)):
             # load a batch for a single scan
-            anchor_batch, pos_sample_batch, neg_sample_batch, num_pos, num_neg = (
-                read_one_batch_pos_neg(self.img_folder, overlaps_data, j, self.channels, self.height, self.width,
-                                       self.num_pos_max, self.num_neg_max, self.device, shuffle=True))
+            (anchor_batch, pos_batch, neg_batch, pos_batch_overlaps, neg_batch_overlaps, num_pos, num_neg) = \
+                (read_one_batch_pos_neg_numerical(self.img_folder, overlaps_data, j, self.channels, self.height,
+                                                  self.width, self.num_pos_max, self.num_neg_max, self.device,
+                                                  shuffle=True))
 
             # in case no pair
             if num_pos == 0 or num_neg == 0:
                 continue
 
-            input_batch = torch.cat((anchor_batch, pos_sample_batch, neg_sample_batch), dim=0)
-
+            input_batch = torch.cat((anchor_batch, pos_batch, neg_batch), dim=0)
             output_batch = self.model(input_batch)
             o1, o2, o3 = torch.split(output_batch, [1, num_pos, num_neg], dim=0)
-            loss = PNV_loss.triplet_loss(o1, o2, o3, self.margin1, lazy=False, ignore_zero_loss=True)
-
-            if loss == -1:
-                continue
+            loss = mean_squared_error_loss(o1, o2, o3, pos_batch_overlaps, neg_batch_overlaps, alpha=1.0)
 
             self.optimizer.zero_grad()
             loss.backward()
@@ -110,9 +106,9 @@ class trainHandler():
         else:
             print("Training From Scratch ...")
             start_epoch = 0
-            best_val = 0.0
+            best_val = sys.maxsize
 
-        writer1 = SummaryWriter(comment=f"LR_{self.learning_rate}_schedule")
+        writer1 = SummaryWriter(comment=f"LR_{self.learning_rate}_overlap__")
 
         overlaps_data = overlaps_loader(self.overlaps_folder, shuffle=True)
         print("=======================================================================\n\n")
@@ -125,16 +121,16 @@ class trainHandler():
             print(f'training with epoch: {epoch}')
             loss = self.train()
             self.scheduler.step()
-            writer1.add_scalar("losses", loss, global_step=epoch)
+            writer1.add_scalar("loss_train", loss, global_step=epoch)
 
             # validate model
             with torch.no_grad():
-                topn_rate = validation(self.model, top_n=5)
-                writer1.add_scalar("topn_rate", topn_rate, global_step=epoch)
+                loss_val = validation(self.model, top_n=5)
+                writer1.add_scalar("loss_val", loss_val, global_step=epoch)
 
             # check if current model has the best validation rate
-            if topn_rate >= best_val:
-                best_val = topn_rate
+            if loss_val <= best_val:
+                best_val = loss_val
                 is_best = True
             else:
                 is_best = False

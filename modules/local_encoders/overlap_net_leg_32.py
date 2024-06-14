@@ -25,7 +25,7 @@ from modules.global_encoders.netvlad import NetVLADLoupe
 
 
 class OverlapNetLeg32(nn.Module):
-    def __init__(self, height=32, width=900, channels=1, norm_layer=None, use_transformer=True):
+    def __init__(self, height=32, width=512, channels=1, norm_layer=None, use_transformer=True):
         super(OverlapNetLeg32, self).__init__()
         if norm_layer is None:
             norm_layer = nn.BatchNorm2d   # number of channels
@@ -50,14 +50,14 @@ class OverlapNetLeg32(nn.Module):
         self.relu = nn.ReLU(inplace=True)
 
         encoder_layer = nn.TransformerEncoderLayer(d_model=256, nhead=4, dim_feedforward=1024, activation='relu',
-                                                   batch_first=False,dropout=0.)
-        self.transformer_encoder = torch.nn.TransformerEncoder(encoder_layer, num_layers=1)  # 3 6
+                                                   batch_first=True, dropout=0.)
+        self.transformer_encoder = torch.nn.TransformerEncoder(encoder_layer, num_layers=1)
         self.convLast1 = nn.Conv2d(128, 256, kernel_size=(1, 1), stride=(1, 1), bias=False)
         self.bnLast1 = norm_layer(256)
         self.convLast2 = nn.Conv2d(512, 1024, kernel_size=(1, 1), stride=(1, 1), bias=False)
         self.bnLast2 = norm_layer(1024)
 
-        self.linear = nn.Linear(128*900, 256)
+        self.linear = nn.Linear(128 * width, 256)
 
         self.sigmoid = nn.Sigmoid()
         self.softmax = nn.Softmax()
@@ -73,18 +73,17 @@ class OverlapNetLeg32(nn.Module):
         out_l = self.relu(self.conv6(out_l))
         out_l = self.relu(self.conv7(out_l))
 
-        out_l_1 = out_l.permute(0, 1, 3, 2)  # out_r (bs, 128,360, 1)
-        out_l_1 = self.relu(self.convLast1(out_l_1))
+        out_l_1 = out_l.permute(0, 1, 3, 2)             # (bs, 128, W, 1) [B, C, W, H]
+        out_l_1 = self.relu(self.convLast1(out_l_1))    # (bs, 256, W, 1)
 
         if self.use_transformer:
-            out_l = out_l_1.squeeze(3)
-
-            out_l = out_l.permute(2, 0, 1)
-            out_l = self.transformer_encoder(out_l)
-
-            out_l = out_l.permute(1, 2, 0)
-            out_l = out_l.unsqueeze(3)
-            out_l = torch.cat((out_l_1, out_l), dim=1)
-            out_l = self.relu(self.convLast2(out_l))
+            out_l = out_l_1.squeeze(3)                  # (bs, 256, W)
+            out_l = out_l.permute(0, 2, 1)              # (bs, W, 256)
+            out_l = self.transformer_encoder(out_l)     # True: (batch, seq, feature)
+            out_l = out_l.permute(0, 2, 1)              # (bs, 256, W)
+            out_l = out_l.unsqueeze(3)                  # (bs, 256, W, 1)
+            out_l = torch.cat((out_l_1, out_l), dim=1)  # (bs, 512, W, 1)
+            out_l = self.relu(self.convLast2(out_l))    # (bs, 1024, W, 1)
             out_l = F.normalize(out_l, dim=1)
+
         return out_l

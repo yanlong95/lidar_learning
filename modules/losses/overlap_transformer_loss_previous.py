@@ -1,12 +1,11 @@
 import os
 import sys
-p = os.path.dirname(os.path.dirname((os.path.abspath(__file__))))
-if p not in sys.path:
-    sys.path.append(p)
+# p = os.path.dirname(os.path.dirname((os.path.abspath(__file__))))
+# if p not in sys.path:
+#     sys.path.append(p)
     
 import torch
 import torch.nn as nn
-import os
 import numpy as np
 import torch.nn.functional as F
 

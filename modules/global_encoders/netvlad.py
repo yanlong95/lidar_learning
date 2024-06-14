@@ -14,7 +14,7 @@ class NetVLADLoupe(nn.Module):
     The NetVLAD neural network, details check the paper NetVLAD and paper PointNetVLAD.
 
     Args:
-        feature_size: (int) The size of the feature layers (channels).
+        feature_size: (int) The size of the feature layers (number of local descriptors).
         max_samples: (int) The length of a single descriptor (width).
         cluster_size: (int) The size of the clusters.
         output_dim: (int) The dimension of the output vector.
@@ -42,7 +42,7 @@ class NetVLADLoupe(nn.Module):
                                            torch.randn(feature_size * cluster_size, output_dim))       # output weights
 
         # determine cluster norm and biases
-        if add_batch_norm:
+        if self.add_batch_norm:
             self.bn1 = nn.BatchNorm1d(cluster_size)
             self.cluster_biases = None
         else:
@@ -78,13 +78,13 @@ class NetVLADLoupe(nn.Module):
         else:
             activation += self.cluster_biases
         activation = self.softmax(activation)
-        # activation = activation.view(-1, self.max_samples, self.cluster_size)   # seems redundant here
+        activation = activation.view(-1, self.max_samples, self.cluster_size)   # seems redundant here
 
         a_sum = activation.sum(-2, keepdim=True)
         a = a_sum * self.cluster_weights2
 
         # VLAD core
-        # x = x.view(-1, self.max_samples, self.feature_size)     # seems redundant here
+        x = x.view(-1, self.max_samples, self.feature_size)     # seems redundant here
         activation = activation.transpose(2, 1)
         vlad = activation @ x
         vlad = vlad.transpose(2, 1)
@@ -111,7 +111,7 @@ class GatingContext(nn.Module):
 
     def __init__(self, dim, add_batch_norm=True):
         """
-        Define a small filter to determine if the weight of each element in the NetVLAD descriptor.
+        Define a small filter to determine the weight of each element in NetVLAD descriptor.
 
         Args:
             dim: (int) the dimension of the descriptor output by NetVLAD.

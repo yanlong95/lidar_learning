@@ -128,8 +128,8 @@ class trainHandler():
                     the balance of positive samples and negative samples.
                     TODO: Update for better training results
                 """
-                use_pos_num = 10
-                use_neg_num = 10
+                use_pos_num = 30
+                use_neg_num = 30
                 if pos_num >= use_pos_num and neg_num >= use_neg_num:
                     sample_batch = torch.cat((sample_batch[0:use_pos_num, :, :, :], sample_batch[pos_num:pos_num + use_neg_num, :, :, :]), dim=0)
                     pos_num = use_pos_num
@@ -163,7 +163,7 @@ class trainHandler():
                 if loss == -1:
                     continue
 
-                # loss = PNV_loss.triplet_loss_inv(o1, o2, o3, MARGIN_1, lazy=False, use_min=True)
+                # losses = PNV_loss.triplet_loss_inv(o1, o2, o3, MARGIN_1, lazy=False, use_min=True)
                 loss.backward()
                 self.optimizer.step()
                 print(str(used_num), loss, f'overlap_thresh:{self.overlap_thresh[j]}')
@@ -176,7 +176,7 @@ class trainHandler():
                 loss_each_epoch = loss_each_epoch + loss.item()
                 used_num = used_num + 1
 
-            print("epoch {} loss {}".format(i, loss_each_epoch/used_num))
+            print("epoch {} losses {}".format(i, loss_each_epoch/used_num))
             print("saving weights ...")
             self.scheduler.step()
 
@@ -192,7 +192,7 @@ class trainHandler():
 
             print("Model Saved As " + 'overlap_transformer' + str(i) + '.pth.tar')
 
-            writer1.add_scalar("loss", loss_each_epoch / used_num, global_step=i)
+            writer1.add_scalar("losses", loss_each_epoch / used_num, global_step=i)
 
             with torch.no_grad():
                 topn_rate = validation(self.amodel, top_n=5)

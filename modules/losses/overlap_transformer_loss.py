@@ -13,8 +13,8 @@ def best_pos_distance(query, pos_vecs, axis=1):
         axis: (int) the sum axis (default is 1 for vector 1 * n, switch to 0 if vector has dimension n * 1).
     """
     diff = ((pos_vecs - query) ** 2).sum(axis)
-    min_pos, _ = diff.min()
-    max_pos, _ = diff.max()
+    min_pos, _ = diff.min(0)
+    max_pos, _ = diff.max(0)
     return min_pos, max_pos
 
 
@@ -35,7 +35,7 @@ def mean_squared_error_loss(vec1, vec2, overlaps):
 
 def triplet_loss(q_vec, pos_vecs, neg_vecs, margin, use_min=False, lazy=False, ignore_zero_loss=False):
     """
-    Calculate the (lazy) triplet loss for a query vector and a positive vector set and a negative vector set.
+    Calculate the (lazy) triplet losses for a query vector and a positive vector set and a negative vector set.
 
     Args:
         q_vec: (torch.Tensor) the query vector in shape (1, q_size).
@@ -43,8 +43,8 @@ def triplet_loss(q_vec, pos_vecs, neg_vecs, margin, use_min=False, lazy=False, i
         neg_vecs: (torch.Tensor) the query negative vector set in shape (num_neg, q_size).
         margin: (float) the margin parameters.
         use_min: (bool) decide to use the positive pair with max distance or min distance.
-        lazy: (bool) use lazy triplet loss ot not.
-        ignore_zero_loss: if count the 0 triplet loss pair when calculate the mean.
+        lazy: (bool) use lazy triplet losses ot not.
+        ignore_zero_loss: if count the 0 triplet losses pair when calculate the mean.
     """
     if pos_vecs.shape[1] == 0:
         return -1
@@ -58,7 +58,7 @@ def triplet_loss(q_vec, pos_vecs, neg_vecs, margin, use_min=False, lazy=False, i
         positive = max_pos
 
     positive = positive.view(-1, 1)
-    negative = ((neg_vecs - q_vec) ** 2).sum(1)
+    negative = ((neg_vecs - q_vec) ** 2).sum(1).unsqueeze(1)
 
     # negative if correctly distinguish, only count fail pairs
     loss = margin + positive - negative
@@ -83,7 +83,7 @@ def triplet_loss(q_vec, pos_vecs, neg_vecs, margin, use_min=False, lazy=False, i
 def quadruplet_loss(q_vec, pos_vecs, neg_vecs, neg_vec_rand, margin1, margin2,
                     use_min=False, lazy=False, ignore_zero_loss=False):
     """
-    Calculate the (lazy) quadruplet loss for a query vector and a positive vector set and a negative vector set.
+    Calculate the (lazy) quadruplet losses for a query vector and a positive vector set and a negative vector set.
 
     Args:
         q_vec: (torch.Tensor) the query vector in shape (1, q_size).
@@ -91,17 +91,17 @@ def quadruplet_loss(q_vec, pos_vecs, neg_vecs, neg_vec_rand, margin1, margin2,
         neg_vecs: (torch.Tensor) the query negative vector set in shape (num_neg, q_size).
         neg_vec_rand: (torch.Tensor) a random negative vector from neg_vecs set to prevent the gap between neg_max and
                                     the other samples.
-        margin1: (float) the margin parameters for query triplet loss.
-        margin2: (float) the margin parameters for random negative pair triplet loss.
+        margin1: (float) the margin parameters for query triplet losses.
+        margin2: (float) the margin parameters for random negative pair triplet losses.
         use_min: (bool) decide to use the positive pair with max distance or min distance.
-        lazy: (bool) use lazy triplet loss ot not.
-        ignore_zero_loss: if count the 0 triplet loss pair when calculate the mean.
+        lazy: (bool) use lazy triplet losses ot not.
+        ignore_zero_loss: if count the 0 triplet losses pair when calculate the mean.
     """
     # in case no positive pair
     if pos_vecs.shape[1] == 0:
         return -1
 
-    # calculate the triple loss for query vector
+    # calculate the triple losses for query vector
     min_pos, max_pos = best_pos_distance(q_vec, pos_vecs)
 
     # the PointNetVLAD use min_pos, the implementation in cattaneod use max_pos instead, (I prefer max_pos)
@@ -130,7 +130,7 @@ def quadruplet_loss(q_vec, pos_vecs, neg_vecs, neg_vec_rand, margin1, margin2,
     else:
         loss_pos = loss_pos.mean()
 
-    # calculate the random negative vector loss
+    # calculate the random negative vector losses
     negative_rand = ((neg_vecs - neg_vec_rand) ** 2).sum(1)
     loss_other = margin2 + positive - negative_rand
     loss_other = loss_other.clamp(0.0)

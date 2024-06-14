@@ -9,17 +9,19 @@ data_root:
   png_files: "/media/vectr/vectr3/Dataset/overlap_transformer/png_files"
   poses: "/media/vectr/vectr3/Dataset/overlap_transformer/poses"
   test: "/media/vectr/vectr3/Dataset/overlap_transformer/test"
-  weights: "/media/vectr/vectr3/Dataset/overlap_transformer/weights/weights_05_28"
+  weights: "/media/vectr/vectr3/Dataset/overlap_transformer/weights/weights_06_10"
   predictions: "/media/vectr/vectr3/Dataset/overlap_transformer/predictions"
 
 seqs:
   all: ["bomb_shelter", "botanical_garden", "bruin_plaza", "court_of_sciences", "dickson_court", "geo_loop",
         "kerckhoff", "luskin", "royce_hall", "sculpture_garden"]
   train: ["bomb_shelter", "botanical_garden", "bruin_plaza", "court_of_sciences", "dickson_court", "kerckhoff",
-          "luskin", "royce_hall"]
+          ]
+#  train: [ "bomb_shelter"]
   valid: ["geo_loop"]
 #  test: ["geo_loop", "royce_hall", "sculpture_garden"]
-  test: ["bomb_shelter", "botanical_garden", "bruin_plaza", "court_of_sciences", "dickson_court", "luskin"]
+  test: ["bomb_shelter", "botanical_garden", "bruin_plaza", "court_of_sciences", "dickson_court", "luskin", "geo_loop",
+         "royce_hall", "sculpture_garden"]
 
 # used for old version test
 test_config:

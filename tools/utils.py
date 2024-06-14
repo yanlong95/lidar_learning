@@ -77,7 +77,7 @@ def save_checkpoint(state, is_best, checkpoint):
     If is_best is True, save checkpoint + 'best.pth.tar'
 
     Args:
-        state: (dict) contain epoch, model_static_dict, optimizer_static_dict and loss
+        state: (dict) contain epoch, model_static_dict, optimizer_static_dict and losses
         is_best: (bool) True if the current model has the best performance
         checkpoint: (string) folder where the parameters are saved
     """
@@ -93,6 +93,7 @@ def save_checkpoint(state, is_best, checkpoint):
     if is_best:
         print(f'Saving best model...')
         shutil.copyfile(file_path, os.path.join(checkpoint, 'best.pth.tar'))
+        print('Saved the best model!\n')
 
 
 def load_checkpoint(checkpoint, model, optimizer=None):

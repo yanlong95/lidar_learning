@@ -186,8 +186,8 @@ def calculate_overlaps_matrix(pcs, kd_trees, params):
 
 if __name__ == '__main__':
     # load configuration and parameters
-    config_path = '/home/vectr/PycharmProjects/lidar_learning/configs/config.yml'
-    params_path = '/home/vectr/PycharmProjects/lidar_learning/configs/parameters.yml'
+    config_path = '/configs/config.yml'
+    params_path = '/configs/parameters.yml'
 
     config = yaml.safe_load(open(config_path))
     params = yaml.safe_load(open(params_path))
