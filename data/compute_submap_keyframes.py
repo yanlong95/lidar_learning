@@ -10,6 +10,18 @@ from tools.fileloader import load_xyz_rot, load_overlaps
 
 
 def compute_submap_keyframes(frames_poses_path, keyframes_poses_path, overlaps_path, top_k=5, metric='euclidean'):
+    """
+    Select the top_k keyframes to create a submap for each scan.
+
+    Args:
+        frames_poses_path: (string) path of folder contains the positions of each frame
+        keyframes_poses_path: (string) path of the folder contains the positions of each keyframes
+        overlaps_path: (string) path of the folder contains the overlap table
+        top_k: (int) number of top selection.
+        metric: (string) selection metric (euclidean or overlap).
+    Returns:
+        indices: (np.array) the indices of selected top_k keyframes indices in shape (n, top_k).
+    """
     # load frames and keyframes positions
     xyz, _ = load_xyz_rot(frames_poses_path)
     xyz_kf, _ = load_xyz_rot(keyframes_poses_path)
