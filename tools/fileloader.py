@@ -91,6 +91,32 @@ def load_descriptors(file_path):
     return descriptors
 
 
+def load_overlaps(file_path):
+    """
+    Load the overlaps file (.bin or .npy).
+
+    Args:
+        file_path: (string) the path of the file containing the descriptors
+    Returns:
+        descriptors: (np.array) the descriptors in shape (n, n).
+    """
+    full_path = os.path.expanduser(file_path)
+    if not os.path.exists(full_path):
+        raise FileNotFoundError(f'File {full_path} does not exist!')
+
+    _, ext = os.path.splitext(full_path)
+    if ext == '.bin':
+        overlaps = np.fromfile(file_path)
+    elif ext == '.npy':
+        overlaps = np.load(full_path, allow_pickle=True).astype(np.float32)
+    else:
+        raise TypeError(f'Overlaps file {full_path} cannot be read!')
+
+    overlaps = overlaps.reshape(-1, int(np.sqrt(len(overlaps))))
+
+    return overlaps
+
+
 def read_pc(pc_path, format='numpy'):
     """
     Read a single point cloud in numpy form.

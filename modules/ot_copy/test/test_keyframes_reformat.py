@@ -151,8 +151,6 @@ def calc_top_n_voronoi(keyframe_poses, keyframe_descriptors, keyframe_voronoi_re
 
     index_poses = faiss.IndexIVFFlat(quantizer_poses, dim_pose, nlist, faiss.METRIC_L2)
     index_descriptors = faiss.IndexIVFFlat(quantizer_descriptors, dim_descriptor, nlist, faiss.METRIC_L2)
-    # check if descriptors are normalized !!!!!!!!!
-    # index_descriptors = faiss.IndexIVFFlat(quantizer_descriptors, dim_descriptor, nlist, faiss.METRIC_INNER_PRODUCT)
 
     if not index_poses.is_trained:
         index_poses.train(keyframe_poses)
@@ -220,7 +218,6 @@ def calc_top_n_distance(keyframe_poses, keyframe_descriptors, test_frame_poses, 
 
     # faiss search based on descriptors norm distances
     index_descriptors = faiss.IndexFlatL2(dim_descriptors)
-    # index_descriptors = faiss.IndexFlatL2(dim_descriptors, faiss.METRIC_INNER_PRODUCT)
     index_descriptors.add(keyframe_descriptors)
 
     # check prediction for each test frame
@@ -252,23 +249,18 @@ def plot_prediction(positive_pred, negative_pred, positive_pred_indices, negativ
     positive_points = np.array(positive_pred)
     negative_points = np.array(negative_pred)
 
-    # save the predictions (for further use)
-    if not os.path.exists(predictions_path):
-        os.makedirs(predictions_path)
-    if not os.path.exists(os.path.join(predictions_path, 'true')):
-        os.makedirs(os.path.join(predictions_path, 'true'))
-    if not os.path.exists(os.path.join(predictions_path, 'false')):
-        os.makedirs(os.path.join(predictions_path, 'false'))
-    np.save(os.path.join(predictions_path, 'true/poses.npy'), positive_points)
-    np.save(os.path.join(predictions_path, 'false/poses.npy'), negative_points)
-    np.save(os.path.join(predictions_path, 'true/indices.npy'), positive_pred_indices)
-    np.save(os.path.join(predictions_path, 'false/indices.npy'), negative_pred_indices)
+    # # save the predictions (for further use)
+    # if not os.path.exists(predictions_path):
+    #     os.makedirs(predictions_path)
+    # np.save(os.path.join(predictions_path, 'predictions/true/poses.npy'), positive_points)
+    # np.save(os.path.join(predictions_path, 'predictions/false/poses.npy'), negative_points)
+    # np.save(os.path.join(predictions_path, 'predictions/true/indices.npy'), positive_pred_indices)
+    # np.save(os.path.join(predictions_path, 'predictions/false/indices.npy'), negative_pred_indices)
 
     if len(positive_pred) > 0:
         plt.scatter(positive_points[:, 0], positive_points[:, 1], c='g', s=50, label='positive')
     if len(negative_pred) > 0:
         plt.scatter(negative_points[:, 0], negative_points[:, 1], c='r', s=50, label='negative')
-    # plt.xlim([-100, 100])
     plt.legend()
     plt.show()
 
@@ -299,65 +291,21 @@ def plot_top_n_keyframes(positive_pred_indices, negative_pred_indices, top_n_cho
         plt.scatter(top_n_keyframe_poses[:, 0], top_n_keyframe_poses[:, 1], c='magenta', s=5, label='top n choices')
         plt.scatter(test_frame_poses[idx, 0], test_frame_poses[idx, 1], c='orange', s=20, label=f'frame: {idx}')
 
-        # plt.axis('square')
+        plt.axis('square')
         plt.xlabel('X [m]')
         plt.ylabel('Y [m]')
         plt.title('Overlap Map')
         plt.legend()
-        # cbar = plt.colorbar(mapper)
-        # cbar.set_label('Overlap', rotation=270, weight='bold')
+        cbar = plt.colorbar(mapper)
+        cbar.set_label('Overlap', rotation=270, weight='bold')
 
         plt.show()
-
-
-def plot_top_n_confidence_score(positive_pred_indices, negative_pred_indices, descriptors, top_n_choices, poses,
-                                use_min=True):
-    num_frames = descriptors.shape[0]
-    confidence_scores = np.zeros(num_frames)
-    for idx in positive_pred_indices:
-        curr_descriptor = descriptors[idx, :]
-        top_n_choice = top_n_choices[idx]
-        top_n_descriptors = descriptors[top_n_choice, :]
-        if use_min:
-            top_n_best_dist = np.min(np.linalg.norm(curr_descriptor - top_n_descriptors, axis=1))
-        else:
-            top_n_best_dist = np.mean(np.linalg.norm(curr_descriptor - top_n_descriptors, axis=1))
-        confidence_scores[idx] = top_n_best_dist
-
-    for idx in negative_pred_indices:
-        curr_descriptor = descriptors[idx, :]
-        top_n_choice = top_n_choices[idx]
-        top_n_descriptors = descriptors[top_n_choice, :]
-        if use_min:
-            top_n_best_dist = np.min(np.linalg.norm(curr_descriptor - top_n_descriptors, axis=1))
-        else:
-            top_n_best_dist = np.mean(np.linalg.norm(curr_descriptor - top_n_descriptors, axis=1))
-        confidence_scores[idx] = top_n_best_dist
-
-    confidence_scores /= np.max(confidence_scores)
-    confidence_scores = np.ones_like(confidence_scores) - confidence_scores
-
-    plt.figure(2)
-    norm = matplotlib.colors.Normalize(vmin=0, vmax=1, clip=True)
-    mapper = matplotlib.cm.ScalarMappable(norm=norm)
-    mapper.set_array(confidence_scores)
-    colors = np.array([mapper.to_rgba(c) for c in confidence_scores])
-
-    plt.scatter(poses[:, 0], poses[:, 1], c=colors, s=10)
-
-    plt.xlabel('X [m]')
-    plt.ylabel('Y [m]')
-    plt.title('Confidence Map')
-    plt.legend()
-    cbar = plt.colorbar(mapper)
-    cbar.set_label('Confidence', rotation=270, weight='bold')
-    plt.show()
 
 
 def testHandler(test_frame_img_path, test_frame_poses_path, keyframes_img_path, keyframes_poses_path, weights_path,
                 descriptors_path, predictions_path, test_selection=1, load_descriptors=False, metric='euclidean'):
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
-    amodel = featureExtracter(height=32, width=512, channels=1, use_transformer=True).to(device)
+    amodel = featureExtracter(height=32, width=900, channels=1, use_transformer=True).to(device)
 
     with torch.no_grad():
         # load model
@@ -412,10 +360,8 @@ def testHandler(test_frame_img_path, test_frame_poses_path, keyframes_img_path, 
 
         # show the result
         plot_prediction(positive_pred, negative_pred, positive_pred_indices, negative_pred_indices, predictions_path)
-        # plot_top_n_keyframes(positive_pred_indices, negative_pred_indices, top_n_choices, keyframe_xyz,
-        #                      test_frame_xyz_selected, test_frame_xyz)
-        plot_top_n_confidence_score(positive_pred_indices, negative_pred_indices, test_frame_descriptors, top_n_choices,
-                                    test_frame_xyz, use_min=True)
+        plot_top_n_keyframes(positive_pred_indices, negative_pred_indices, top_n_choices, keyframe_xyz,
+                             test_frame_xyz_selected, test_frame_xyz)
 
 
 if __name__ == '__main__':
@@ -428,38 +374,18 @@ if __name__ == '__main__':
     descriptors_path = config["data_root"]["descriptors"]
     predictions_path = config["data_root"]["predictions"]
     weights_path = config["data_root"]["weights"]
-    test_seq = config["seqs"]["test"][5]
+    test_seq = config["seqs"]["test"][1]
     # ============================================================================
 
-    # test_frame_img_path = os.path.join(frame_img_path, '512', test_seq)
-    # test_frame_pose_path = os.path.join(frame_poses_path, test_seq, 'poses.txt')
-    # test_keyframe_img_path = os.path.join(keyframe_path, test_seq, 'png_files', '512')
-    # test_keyframe_poses_path = os.path.join(keyframe_path, test_seq, 'poses', 'poses_kf.txt')
-    # test_weights_path = os.path.join(weights_path, 'best.pth.tar')
-    # # test_weights_path = '/media/vectr/T9/Dataset/overlap_transformer/weights/pretrained_overlap_transformer_full_test50.pth.tar'
-    # test_descriptors_path = os.path.join(descriptors_path, test_seq)
-    # test_predictions_path = os.path.join(predictions_path, test_seq)
-
-    seqs = ['mout-forest-loop', 'mout-loop-1', 'mout-water-2', 'mout-water-3_filtered', 'mout-with-vehicles',
-            'out-and-back-2', 'out-and-back-3', 'parking-lot']
-    seq = seqs[5]
-    # test_frame_img_path = os.path.join(f'/media/vectr/vectr3/Dataset/arl/png_files/{seq}', '512')
-    # test_frame_pose_path = os.path.join(f'/media/vectr/vectr3/Dataset/arl/poses/{seq}', 'poses.txt')
-    # test_keyframe_img_path = os.path.join(f'/media/vectr/vectr3/Dataset/arl/keyframes/{seq}', 'png_files', '512')
-    # test_keyframe_poses_path = os.path.join(f'/media/vectr/vectr3/Dataset/arl/poses/{seq}', 'poses_kf.txt')
-    # test_weights_path = os.path.join('/media/vectr/vectr3/Dataset/overlap_transformer/weights/weights_512_schedule', 'last.pth.tar')
-    # test_descriptors_path = os.path.join('/media/vectr/vectr3/Dataset/arl/descriptors', seq)
-    # test_predictions_path = os.path.join('/media/vectr/vectr3/Dataset/arl/predictions', seq)
-
-    test_frame_img_path = os.path.join(f'/media/vectr/vectr3/Dataset/loop_closure_detection/png_files/e4_3', '512')
-    test_frame_pose_path = os.path.join(f'/media/vectr/vectr3/Dataset/loop_closure_detection/poses/e4_3', 'poses.txt')
-    test_keyframe_img_path = os.path.join(f'/media/vectr/vectr3/Dataset/loop_closure_detection/keyframes/e4_3', 'png_files', '512')
-    test_keyframe_poses_path = os.path.join(f'/media/vectr/vectr3/Dataset/loop_closure_detection/poses/e4_3', 'poses_kf.txt')
-    test_weights_path = os.path.join('/media/vectr/vectr3/Dataset/overlap_transformer/weights/weights_512_schedule',
-                                     'last.pth.tar')
-    test_descriptors_path = os.path.join('/media/vectr/vectr3/Dataset/loop_closure_detection/descriptors', 'e4_3')
-    test_predictions_path = os.path.join('/media/vectr/vectr3/Dataset/loop_closure_detection/predictions', 'e4_3')
+    test_frame_img_path = os.path.join(frame_img_path, '900', test_seq)
+    test_frame_pose_path = os.path.join(frame_poses_path, test_seq, 'poses.txt')
+    test_keyframe_img_path = os.path.join(keyframe_path, test_seq, 'png_files', '900')
+    test_keyframe_poses_path = os.path.join(keyframe_path, test_seq, 'poses', 'poses_kf.txt')
+    test_weights_path = os.path.join(weights_path, 'overlap_transformer_50.pth.tar')
+    # test_weights_path = '/media/vectr/T9/Dataset/overlap_transformer/weights/pretrained_overlap_transformer_full_test50.pth.tar'
+    test_descriptors_path = os.path.join(descriptors_path, test_seq)
+    test_predictions_path = os.path.join(predictions_path, test_seq)
 
     testHandler(test_frame_img_path, test_frame_pose_path, test_keyframe_img_path, test_keyframe_poses_path,
-                test_weights_path, test_descriptors_path, test_predictions_path, test_selection=1,
-                load_descriptors=False, metric='voronoi')
+                test_weights_path, test_descriptors_path, test_predictions_path, test_selection=10,
+                load_descriptors=False, metric='euclidean')

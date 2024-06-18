@@ -6,61 +6,45 @@ File to compute the submap for each scan. The submap is consisted with the k key
 import os
 import faiss
 import numpy as np
-import matplotlib.pyplot as plt
-from tools.fileloader import load_xyz_rot
-from mpl_toolkits import mplot3d
+from tools.fileloader import load_xyz_rot, load_overlaps
 
 
-def compute_submap_keyframes(frames_poses_path, keyframes_poses_path, top_k=5):
+def compute_submap_keyframes(frames_poses_path, keyframes_poses_path, overlaps_path, top_k=5, metric='euclidean'):
     # load frames and keyframes positions
     xyz, _ = load_xyz_rot(frames_poses_path)
     xyz_kf, _ = load_xyz_rot(keyframes_poses_path)
+    overlaps = load_overlaps(overlaps_path)
 
-    # add keyframes positions to faiss
-    index = faiss.IndexFlatL2(3)
-    index.add(xyz_kf)
+    if metric == 'euclidean':
+        # search the closest top_k keyframes
+        index = faiss.IndexFlatL2(3)
+        index.add(xyz_kf)
+        _, indices = index.search(xyz, top_k)
+    elif metric == 'overlap':
+        # search the top_k keyframes base on the overlap values
+        index = faiss.IndexFlat(3)
+        index.add(xyz)
+        _, indices_kf = index.search(xyz_kf, 1)
+        overlaps_kf = overlaps[:, indices_kf.squeeze()]             # each row is the overlaps between curr and keyframe
 
-    _, indices = index.search(xyz, top_k)
+        # search the top_k keyframes for each frame
+        indices = np.zeros((len(overlaps), top_k), dtype=int)
+        for i in range(len(overlaps)):
+            indices[i, :] = overlaps_kf[i, :].argsort()[-top_k:][::-1]
+    else:
+        raise "Invalid metric! Must be 'euclidean' or 'overlap'"
 
-    visualize_traj_2d(xyz, xyz_kf, indices)
-
-
-
-
-
-
-
-def visualize_traj_3d(xyz, xyz_kf):
-    fig = plt.figure()
-    ax = plt.axes(projection='3d')
-    ax.scatter3D(xyz[:, 0], xyz[:, 1], xyz[:, 2])
-    ax.scatter3D(xyz_kf[:, 0], xyz_kf[:, 1], xyz_kf[:, 2], c='gold')
-    ax.axis('equal')
-    plt.show()
-
-
-def visualize_traj_2d(xyz, xyz_kf, xyz_kf_selected):
-    for i in range(xyz.shape[0]):
-        fig, ax = plt.subplots()
-        xyz_curr = xyz[i, :]
-        xyz_curr_kf = xyz_kf[xyz_kf_selected[i, :], :]
-
-        ax.scatter(xyz[:, 0], xyz[:, 1])
-        ax.scatter(xyz_kf[:, 0], xyz_kf[:, 1], c='gold')
-        ax.scatter(xyz_curr_kf[:, 0], xyz_curr_kf[:, 1], c='red')
-        ax.scatter(xyz_curr[0], xyz_curr[1], c='violet')
-        plt.show()
-        plt.pause(0.1)
-        plt.close(fig)
+    return indices
 
 
 if __name__ == '__main__':
     seqs = ["bomb_shelter", "botanical_garden", "bruin_plaza", "court_of_sciences", "dickson_court", "geo_loop",
             "kerckhoff", "luskin", "royce_hall", "sculpture_garden"]
-    seq = seqs[0]
+    seq = seqs[2]
 
-    root_folder = '/media/vectr/vectr6/Dataset/overlap_transformer'
+    root_folder = '/Volumes/vectr6/Dataset/overlap_transformer'
     frames_poses_path = os.path.join(root_folder, 'poses', seq, 'poses.txt')
     keyframes_poses_path = os.path.join(root_folder, 'keyframes', seq, 'poses', 'poses_kf.txt')
+    overlaps_path = os.path.join(root_folder, 'overlaps', f'{seq}.bin')
 
-    compute_submap_keyframes(frames_poses_path, keyframes_poses_path)
+    compute_submap_keyframes(frames_poses_path, keyframes_poses_path, overlaps_path, metric='overlap')
