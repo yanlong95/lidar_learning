@@ -84,7 +84,7 @@ class trainHandler():
             output_batch = self.model(input_batch)
             o1, o2, o3 = torch.split(output_batch, [1, num_pos, num_neg], dim=0)
             # loss = triplet_loss(o1, o2, o3, self.margin1, lazy=False, ignore_zero_loss=True)
-            loss = triplet_confidence_loss(o1, o2, o3, pos_overlaps, self.margin1, alpha=0.00,
+            loss = triplet_confidence_loss(o1, o2, o3, pos_overlaps, self.margin1, alpha=1.0,
                                            lazy=False, ignore_zero_loss=True, metric='euclidean')
 
             if loss == -1:

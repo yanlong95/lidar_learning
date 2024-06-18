@@ -11,8 +11,8 @@
   "eps": 1.0e-5
 
 "learning":
-#  "learning_rate": 5.0e-5
-  "learning_rate": 1.0e-4
+  "learning_rate": 5.0e-5
+#  "learning_rate": 1.0e-4
   "learning_rate_overlap": 1.0e-4
   "num_pos_max": 30
   "num_pos_max_overlap": 20

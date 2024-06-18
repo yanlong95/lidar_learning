@@ -86,8 +86,8 @@ def overlap_loss(q_vec, pos_vecs, overlaps, metric='euclidean'):
     similarity = compute_distance(q_vec, pos_vecs, axis=1, metric=metric)
 
     if metric == 'euclidean':
-        similarity = similarity / torch.linalg.norm(similarity, dim=0) * torch.pi / 2   # normalized between 0 - pi/2
-        similarity = torch.cos(similarity)
+        similarity = F.normalize(similarity, dim=0) * torch.pi / 2   # normalized between 0 - pi/2
+        similarity = torch.cos(similarity)                           # between 1 - 0
 
     if len(overlaps.shape) == 1:
         overlaps = overlaps.unsqueeze(1)
@@ -97,7 +97,7 @@ def overlap_loss(q_vec, pos_vecs, overlaps, metric='euclidean'):
     return loss
 
 
-def triplet_confidence_loss(q_vec, pos_vecs, neg_vecs, pos_overlaps, margin, alpha=0.5, use_min=False, lazy=False,
+def triplet_confidence_loss(q_vec, pos_vecs, neg_vecs, pos_overlaps, margin, alpha=1.0, use_min=False, lazy=False,
                             ignore_zero_loss=False, metric='euclidean'):
     """
     Calculate the (lazy) triplet losses combine with a confidence loss function to minimize the overlaps and similarity
@@ -120,7 +120,7 @@ def triplet_confidence_loss(q_vec, pos_vecs, neg_vecs, pos_overlaps, margin, alp
     tri_loss = triplet_loss(q_vec, pos_vecs, neg_vecs, margin, use_min, lazy, ignore_zero_loss)
     sim_loss = overlap_loss(q_vec, pos_vecs, pos_overlaps, metric=metric)
     loss = tri_loss + alpha * sim_loss
-    return sim_loss
+    return loss
 
 
 def triplet_loss(q_vec, pos_vecs, neg_vecs, margin, use_min=False, lazy=False, ignore_zero_loss=False):
