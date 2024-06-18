@@ -16,14 +16,14 @@ import torch
 import numpy as np
 from tensorboardX import SummaryWriter
 from modules.overlap_transformer import OverlapTransformer32
-from modules.losses.overlap_transformer_loss import triplet_loss
+from modules.losses.overlap_transformer_loss import triplet_loss, triplet_confidence_loss
 from valid.overlap_transformer_valid import validation
-from tools.read_datasets import overlaps_loader, read_one_batch_pos_neg
+from tools.read_datasets import overlaps_loader, read_one_batch_pos_neg, read_one_batch_overlaps
 from tools.utils import RunningAverage, save_checkpoint
 
 
 class trainHandler():
-    def __init__(self, params=None, img_folder=None, overlaps_folder=None, weights_folder=None):
+    def __init__(self, params=None, img_folder=None, overlaps_folder=None, weights_folder=None, resume=False):
         super(trainHandler, self).__init__()
 
         # define model, optimizer, and scheduler
@@ -50,7 +50,7 @@ class trainHandler():
         self.weights_folder = weights_folder            # weight path
 
         # resume training
-        self.resume = False
+        self.resume = resume
         self.restore_path = os.path.join(self.weights_folder, 'last.pth.tar')
 
     def train(self):
@@ -65,20 +65,27 @@ class trainHandler():
         num_scans = overlaps_data.shape[0]
 
         for j in tqdm.tqdm(range(num_scans)):
-            # load a batch for a single scan
-            anchor_batch, pos_sample_batch, neg_sample_batch, num_pos, num_neg = (
-                read_one_batch_pos_neg(self.img_folder, overlaps_data, j, self.channels, self.height, self.width,
-                                       self.num_pos_max, self.num_neg_max, self.device, shuffle=True))
+            # # load a batch for a single scan
+            # anchor_batch, pos_sample_batch, neg_sample_batch, num_pos, num_neg = (
+            #     read_one_batch_pos_neg(self.img_folder, overlaps_data, j, self.channels, self.height, self.width,
+            #                            self.num_pos_max, self.num_neg_max, self.device, shuffle=True))
+
+            # load a batch for a single scan with overlaps values
+            anchor_batch, pos_batch, neg_batch, pos_overlaps, neg_overlaps, num_pos, num_neg = (
+                read_one_batch_overlaps(self.img_folder, overlaps_data, j, self.channels, self.height, self.width,
+                                        self.num_pos_max, self.num_neg_max, self.device, shuffle=True))
 
             # in case no pair
             if num_pos == 0 or num_neg == 0:
                 continue
 
-            input_batch = torch.cat((anchor_batch, pos_sample_batch, neg_sample_batch), dim=0)
+            input_batch = torch.cat((anchor_batch, pos_batch, neg_batch), dim=0)
 
             output_batch = self.model(input_batch)
             o1, o2, o3 = torch.split(output_batch, [1, num_pos, num_neg], dim=0)
-            loss = triplet_loss(o1, o2, o3, self.margin1, lazy=False, ignore_zero_loss=True)
+            # loss = triplet_loss(o1, o2, o3, self.margin1, lazy=False, ignore_zero_loss=True)
+            loss = triplet_confidence_loss(o1, o2, o3, pos_overlaps, self.margin1, alpha=0.00,
+                                           lazy=False, ignore_zero_loss=True, metric='euclidean')
 
             if loss == -1:
                 continue
@@ -180,5 +187,5 @@ if __name__ == '__main__':
             training_seqs: sequences number for training (alone the lines of OverlapNet).
     """
     train_handler = trainHandler(params=parameters, img_folder=train_img_folder, overlaps_folder=train_overlaps_folder,
-                                 weights_folder=weights_folder)
+                                 weights_folder=weights_folder, resume=False)
     train_handler.train_eval()

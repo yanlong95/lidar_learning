@@ -23,7 +23,7 @@ from modules.ot_copy.tools.utils.utils import *
 from modules.ot_copy.valid.valid_seq_os1_rewrite_new import validation
 import yaml
 
-from modules.ot_copy.tools.read_all_sets_reformat import overlaps_loader, read_one_batch_pos_neg_numerical
+from modules.ot_copy.tools.read_all_sets_reformat import overlaps_loader, read_one_batch_pos_neg_overlap
 from tools.utils import RunningAverage, save_checkpoint
 
 
@@ -71,7 +71,7 @@ class trainHandler():
         for j in tqdm.tqdm(range(num_scans)):
             # load a batch for a single scan
             (anchor_batch, pos_batch, neg_batch, pos_batch_overlaps, neg_batch_overlaps, num_pos, num_neg) = \
-                (read_one_batch_pos_neg_numerical(self.img_folder, overlaps_data, j, self.channels, self.height,
+                (read_one_batch_pos_neg_overlap(self.img_folder, overlaps_data, j, self.channels, self.height,
                                                   self.width, self.num_pos_max, self.num_neg_max, self.device,
                                                   shuffle=True))
 

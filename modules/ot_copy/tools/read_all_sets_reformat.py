@@ -64,7 +64,7 @@ def read_one_batch_pos_neg(img_folder_path, overlaps, idx, channels, height, wid
     return anchor_batch, pos_sample_batch, neg_sample_batch, num_pos, num_neg
 
 
-def read_one_batch_pos_neg_numerical(img_folder_path, overlaps, idx, channels, height, width, pos_max, neg_max,
+def read_one_batch_pos_neg_overlap(img_folder_path, overlaps, idx, channels, height, width, pos_max, neg_max,
                                      device='cuda', shuffle=True):
 
     batch = overlaps[idx, :]

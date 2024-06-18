@@ -18,11 +18,10 @@ import numpy as np
 from tensorboardX import SummaryWriter
 from modules.overlap_transformer import OverlapTransformer32
 from modules.losses.overlap_transformer_loss import mean_squared_error_loss
-# from modules.ot_copy.tools.utils.utils import *
 from valid.overlap_transformer_valid import validation
 import yaml
 
-from tools.read_datasets import overlaps_loader, read_one_batch_pos_neg_numerical
+from tools.read_datasets import overlaps_loader, read_one_batch_overlaps
 from tools.utils import RunningAverage, save_checkpoint
 
 
@@ -70,9 +69,8 @@ class trainHandler():
         for j in tqdm.tqdm(range(num_scans)):
             # load a batch for a single scan
             (anchor_batch, pos_batch, neg_batch, pos_batch_overlaps, neg_batch_overlaps, num_pos, num_neg) = \
-                (read_one_batch_pos_neg_numerical(self.img_folder, overlaps_data, j, self.channels, self.height,
-                                                  self.width, self.num_pos_max, self.num_neg_max, self.device,
-                                                  shuffle=True))
+                (read_one_batch_overlaps(self.img_folder, overlaps_data, j, self.channels, self.height, self.width,
+                                         self.num_pos_max, self.num_neg_max, self.device, shuffle=True))
 
             # in case no pair
             if num_pos == 0 or num_neg == 0:
@@ -108,7 +106,7 @@ class trainHandler():
             start_epoch = 0
             best_val = sys.maxsize
 
-        writer1 = SummaryWriter(comment=f"LR_{self.learning_rate}_overlap__")
+        writer1 = SummaryWriter(comment=f"LR_{self.learning_rate}_overlap")
 
         overlaps_data = overlaps_loader(self.overlaps_folder, shuffle=True)
         print("=======================================================================\n\n")
