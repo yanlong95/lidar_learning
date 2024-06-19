@@ -18,7 +18,7 @@ from tensorboardX import SummaryWriter
 from modules.overlap_transformer import OverlapTransformer32
 from modules.losses.overlap_transformer_loss import triplet_loss, triplet_confidence_loss
 from valid.overlap_transformer_valid import validation
-from tools.read_datasets import overlaps_loader, read_one_batch_pos_neg, read_one_batch_overlaps
+from tools.read_datasets import overlaps_loader, read_one_batch_overlaps
 from tools.utils import RunningAverage, save_checkpoint
 
 

@@ -2,6 +2,7 @@
 File to compute the submap for each scan. The submap is consisted with the k keyframes.
 !!! Current version choose top_k closest keyframes in Euclidean space.
 !!! Current version, the submap is only a list of indices of top k keyframes.
+!!! Current version, euclidean distance is more stable than overlap.
 """
 import os
 import faiss
@@ -52,11 +53,11 @@ def compute_submap_keyframes(frames_poses_path, keyframes_poses_path, overlaps_p
 if __name__ == '__main__':
     seqs = ["bomb_shelter", "botanical_garden", "bruin_plaza", "court_of_sciences", "dickson_court", "geo_loop",
             "kerckhoff", "luskin", "royce_hall", "sculpture_garden"]
-    seq = seqs[0]
+    seq = seqs[2]
 
     root_folder = '/Volumes/vectr6/Dataset/overlap_transformer'
     frames_poses_path = os.path.join(root_folder, 'poses', seq, 'poses.txt')
     keyframes_poses_path = os.path.join(root_folder, 'keyframes', seq, 'poses', 'poses_kf.txt')
     overlaps_path = os.path.join(root_folder, 'overlaps', f'{seq}.bin')
 
-    compute_submap_keyframes(frames_poses_path, keyframes_poses_path, overlaps_path, metric='overlap')
+    indices = compute_submap_keyframes(frames_poses_path, keyframes_poses_path, overlaps_path, metric='overlap')
