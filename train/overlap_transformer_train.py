@@ -35,8 +35,10 @@ class trainHandler():
         self.num_epochs = params['num_epochs']
         self.num_pos_max = params['num_pos_max']
         self.num_neg_max = params['num_neg_max']
-        self.margin1 = params['margin1']
         self.learning_rate = params['learning_rate']
+        self.margin1 = params['margin1']
+        self.alpha = params['alpha']
+        self.metric = params['metric']
 
         self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
         self.model = OverlapTransformer32(width=self.width, channels=self.channels,
@@ -84,8 +86,8 @@ class trainHandler():
             output_batch = self.model(input_batch)
             o1, o2, o3 = torch.split(output_batch, [1, num_pos, num_neg], dim=0)
             # loss = triplet_loss(o1, o2, o3, self.margin1, lazy=False, ignore_zero_loss=True)
-            loss = triplet_confidence_loss(o1, o2, o3, pos_overlaps, self.margin1, alpha=0.0,
-                                           lazy=False, ignore_zero_loss=True, metric='cosine')
+            loss = triplet_confidence_loss(o1, o2, o3, pos_overlaps, self.margin1, alpha=self.alpha,
+                                           lazy=False, ignore_zero_loss=True, metric=self.metric)
 
             if loss == -1:
                 continue
@@ -115,7 +117,7 @@ class trainHandler():
             best_val = 0.0
             train_start_str = "Training From Scratch."
 
-        writer1 = SummaryWriter(comment=f"LR_{self.learning_rate}_cosine_alpha_0.0_schedule")
+        writer1 = SummaryWriter(comment=f"LR_{self.learning_rate}_{self.metric}_alpha_{self.alpha}_schedule")
 
         overlaps_data = overlaps_loader(self.overlaps_folder, shuffle=True)
         print("=======================================================================\n")
@@ -188,5 +190,5 @@ if __name__ == '__main__':
             training_seqs: sequences number for training (alone the lines of OverlapNet).
     """
     train_handler = trainHandler(params=parameters, img_folder=train_img_folder, overlaps_folder=train_overlaps_folder,
-                                 weights_folder=weights_folder, resume=True)
+                                 weights_folder=weights_folder, resume=False)
     train_handler.train_eval()
