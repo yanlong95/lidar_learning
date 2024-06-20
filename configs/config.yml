@@ -1,28 +1,33 @@
 data_root:
-  descriptors: "/media/vectr/T9/Dataset/overlap_transformer/descriptors"
+  descriptors: "/media/vectr/vectr3/Dataset/overlap_transformer/descriptors"
 #  gt_overlap: "/media/vectr/T9/Dataset/overlap_transformer/gt_overlap"
-  gt_overlaps: "/media/vectr/T9/Dataset/overlap_transformer/gt_overlaps"
-  keyframes: "/media/vectr/T9/Dataset/overlap_transformer/keyframes"
-  npy_files: "/media/vectr/T9/Dataset/overlap_transformer/npy_files"
-  overlaps: "/media/vectr/T9/Dataset/overlap_transformer/overlaps"
-  pcd_files: "/media/vectr/T9/Dataset/overlap_transformer/pcd_files"
-  png_files: "/media/vectr/T9/Dataset/overlap_transformer/png_files"
-  poses: "/media/vectr/T9/Dataset/overlap_transformer/poses"
-  test: "/media/vectr/T9/Dataset/overlap_transformer/test"
-  weights: "/media/vectr/T9/Dataset/overlap_transformer/weights/weights_0.3"
-  predictions: "/media/vectr/T9/Dataset/overlap_transformer/predictions"
+  gt_overlaps: "/media/vectr/vectr3/Dataset/overlap_transformer/gt_overlaps"
+  keyframes: "/media/vectr/vectr3/Dataset/overlap_transformer/keyframes"
+  npy_files: "/media/vectr/vectr3/Dataset/overlap_transformer/npy_files"
+  overlaps: "/media/vectr/vectr3/Dataset/overlap_transformer/overlaps"
+  pcd_files: "/media/vectr/vectr3/Dataset/overlap_transformer/pcd_files"
+  png_files: "/media/vectr/vectr3/Dataset/overlap_transformer/png_files"
+  poses: "/media/vectr/vectr3/Dataset/overlap_transformer/poses"
+  test: "/media/vectr/vectr3/Dataset/overlap_transformer/test"
+#  weights: "/media/vectr/vectr3/Dataset/overlap_transformer/weights/weights_06_10"
+  weights: "/media/vectr/vectr3/Dataset/overlap_transformer/weights/weights_06_19"
+  predictions: "/media/vectr/vectr3/Dataset/overlap_transformer/predictions"
 
 seqs:
   all: ["bomb_shelter", "botanical_garden", "bruin_plaza", "court_of_sciences", "dickson_court", "geo_loop",
         "kerckhoff", "luskin", "royce_hall", "sculpture_garden"]
-  train: ["bomb_shelter", "botanical_garden", "bruin_plaza", "court_of_sciences", "dickson_court", "kerckhoff"]
+#  train: ["bomb_shelter", "botanical_garden", "bruin_plaza", "court_of_sciences", "dickson_court", "kerckhoff",
+#          ]
+  train: [ "bomb_shelter"]
   valid: ["geo_loop"]
-  test: ["geo_loop", "royce_hall", "sculpture_garden"]
+#  test: ["geo_loop", "royce_hall", "sculpture_garden"]
+  test: ["bomb_shelter", "botanical_garden", "bruin_plaza", "court_of_sciences", "dickson_court", "luskin", "geo_loop",
+         "royce_hall", "sculpture_garden"]
 
 # used for old version test
 test_config:
   test_seqs: ["botanical_garden", "geo_loop", "royce_hall", "sculpture_garden"]
-  test_frames: "/media/vectr/T9/Dataset/overlap_transformer/test/"
-  test_keyframes: "/media/vectr/T9/Dataset/overlap_transformer/keyframes/"
-  test_descriptors: "/media/vectr/T9/Dataset/overlap_transformer/descriptors/"
-  test_weights: "/media/vectr/T9/Dataset/overlap_transformer/weights/pretrained_overlap_transformer_full_test50.pth.tar"
+  test_frames: "/media/vectr/vectr3/Dataset/overlap_transformer/test/"
+  test_keyframes: "/media/vectr/vectr3/Dataset/overlap_transformer/keyframes/"
+  test_descriptors: "/media/vectr/vectr3/Dataset/overlap_transformer/descriptors/"
+  test_weights: "/media/vectr/vectr3/Dataset/overlap_transformer/weights/pretrained_overlap_transformer_full_test50.pth.tar"

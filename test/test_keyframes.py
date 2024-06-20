@@ -241,8 +241,38 @@ def calc_top_n_distance(keyframe_poses, keyframe_descriptors, test_frame_poses, 
     return precision, positive_pred, negative_pred, positive_pred_indices, negative_pred_indices, top_n_choices
 
 
+def calc_top_n_confidence_score(positive_pred_indices, negative_pred_indices, descriptors, descriptors_kf,
+                                top_n_choices, use_min=True):
+    num_frames = descriptors.shape[0]
+    confidence_scores = np.zeros(num_frames)
+    for idx in positive_pred_indices:
+        curr_descriptor = descriptors[idx, :]
+        top_n_choice = top_n_choices[idx]
+        top_n_descriptors = descriptors_kf[top_n_choice, :]
+        if use_min:
+            top_n_best_dist = np.min(np.linalg.norm(curr_descriptor - top_n_descriptors, axis=1))
+        else:
+            top_n_best_dist = np.mean(np.linalg.norm(curr_descriptor - top_n_descriptors, axis=1))
+        confidence_scores[idx] = top_n_best_dist
+
+    for idx in negative_pred_indices:
+        curr_descriptor = descriptors[idx, :]
+        top_n_choice = top_n_choices[idx]
+        top_n_descriptors = descriptors_kf[top_n_choice, :]
+        if use_min:
+            top_n_best_dist = np.min(np.linalg.norm(curr_descriptor - top_n_descriptors, axis=1))
+        else:
+            top_n_best_dist = np.mean(np.linalg.norm(curr_descriptor - top_n_descriptors, axis=1))
+        confidence_scores[idx] = top_n_best_dist
+
+    confidence_scores /= np.max(confidence_scores)
+    confidence_scores = np.ones_like(confidence_scores) - confidence_scores
+
+    return confidence_scores
+
+
 def plot_prediction(positive_pred, negative_pred, positive_pred_indices, negative_pred_indices,
-                    predictions_path):
+                    predictions_path, confidence_scores, test_frame_poses):
     # fig = voronoi_plot_2d(voronoi_map)
     positive_points = np.array(positive_pred)
     negative_points = np.array(negative_pred)
@@ -259,11 +289,30 @@ def plot_prediction(positive_pred, negative_pred, positive_pred_indices, negativ
     np.save(os.path.join(predictions_path, 'true/indices.npy'), positive_pred_indices)
     np.save(os.path.join(predictions_path, 'false/indices.npy'), negative_pred_indices)
 
+    fig, [ax1, ax2] = plt.subplots(1, 2)
+
+    # plot prediction
     if len(positive_pred) > 0:
-        plt.scatter(positive_points[:, 0], positive_points[:, 1], c='g', s=50, label='positive')
+        ax1.scatter(positive_points[:, 0], positive_points[:, 1], c='g', s=50, label='positive')
     if len(negative_pred) > 0:
-        plt.scatter(negative_points[:, 0], negative_points[:, 1], c='r', s=50, label='negative')
-    # plt.xlim([-100, 100])
+        ax1.scatter(negative_points[:, 0], negative_points[:, 1], c='r', s=50, label='negative')
+    ax1.set_xlabel('X [m]')
+    ax1.set_ylabel('Y [m]')
+    ax1.set_title('Prediction')
+
+    # plot confidence
+    norm = matplotlib.colors.Normalize(vmin=0, vmax=1, clip=True)
+    mapper = matplotlib.cm.ScalarMappable(norm=norm)
+    mapper.set_array(confidence_scores)
+    colors = np.array([mapper.to_rgba(c) for c in confidence_scores])
+
+    ax2.scatter(test_frame_poses[:, 0], test_frame_poses[:, 1], c=colors, s=10)
+    ax2.set_xlabel('X [m]')
+    ax2.set_ylabel('Y [m]')
+    ax2.set_title('Confidence')
+    cbar = plt.colorbar(mapper)
+    # cbar.set_label('Confidence', rotation=270, weight='bold')
+
     plt.legend()
     plt.show()
 
@@ -305,48 +354,51 @@ def plot_top_n_keyframes(positive_pred_indices, negative_pred_indices, top_n_cho
         plt.show()
 
 
-def plot_top_n_confidence_score(positive_pred_indices, negative_pred_indices, descriptors, top_n_choices, poses,
-                                use_min=True):
-    num_frames = descriptors.shape[0]
-    confidence_scores = np.zeros(num_frames)
-    for idx in positive_pred_indices:
-        curr_descriptor = descriptors[idx, :]
-        top_n_choice = top_n_choices[idx]
-        top_n_descriptors = descriptors[top_n_choice, :]
-        if use_min:
-            top_n_best_dist = np.min(np.linalg.norm(curr_descriptor - top_n_descriptors, axis=1))
-        else:
-            top_n_best_dist = np.mean(np.linalg.norm(curr_descriptor - top_n_descriptors, axis=1))
-        confidence_scores[idx] = top_n_best_dist
 
-    for idx in negative_pred_indices:
-        curr_descriptor = descriptors[idx, :]
-        top_n_choice = top_n_choices[idx]
-        top_n_descriptors = descriptors[top_n_choice, :]
-        if use_min:
-            top_n_best_dist = np.min(np.linalg.norm(curr_descriptor - top_n_descriptors, axis=1))
-        else:
-            top_n_best_dist = np.mean(np.linalg.norm(curr_descriptor - top_n_descriptors, axis=1))
-        confidence_scores[idx] = top_n_best_dist
 
-    confidence_scores /= np.max(confidence_scores)
-    confidence_scores = np.ones_like(confidence_scores) - confidence_scores
 
-    plt.figure(2)
-    norm = matplotlib.colors.Normalize(vmin=0, vmax=1, clip=True)
-    mapper = matplotlib.cm.ScalarMappable(norm=norm)
-    mapper.set_array(confidence_scores)
-    colors = np.array([mapper.to_rgba(c) for c in confidence_scores])
-
-    plt.scatter(poses[:, 0], poses[:, 1], c=colors, s=10)
-
-    plt.xlabel('X [m]')
-    plt.ylabel('Y [m]')
-    plt.title('Confidence Map')
-    plt.legend()
-    cbar = plt.colorbar(mapper)
-    cbar.set_label('Confidence', rotation=270, weight='bold')
-    plt.show()
+# def plot_top_n_confidence_score(positive_pred_indices, negative_pred_indices, descriptors, descriptors_kf,
+#                                 top_n_choices, poses, use_min=True):
+#     num_frames = descriptors.shape[0]
+#     confidence_scores = np.zeros(num_frames)
+#     for idx in positive_pred_indices:
+#         curr_descriptor = descriptors[idx, :]
+#         top_n_choice = top_n_choices[idx]
+#         top_n_descriptors = descriptors_kf[top_n_choice, :]
+#         if use_min:
+#             top_n_best_dist = np.min(np.linalg.norm(curr_descriptor - top_n_descriptors, axis=1))
+#         else:
+#             top_n_best_dist = np.mean(np.linalg.norm(curr_descriptor - top_n_descriptors, axis=1))
+#         confidence_scores[idx] = top_n_best_dist
+#
+#     for idx in negative_pred_indices:
+#         curr_descriptor = descriptors[idx, :]
+#         top_n_choice = top_n_choices[idx]
+#         top_n_descriptors = descriptors[top_n_choice, :]
+#         if use_min:
+#             top_n_best_dist = np.min(np.linalg.norm(curr_descriptor - top_n_descriptors, axis=1))
+#         else:
+#             top_n_best_dist = np.mean(np.linalg.norm(curr_descriptor - top_n_descriptors, axis=1))
+#         confidence_scores[idx] = top_n_best_dist
+#
+#     confidence_scores /= np.max(confidence_scores)
+#     confidence_scores = np.ones_like(confidence_scores) - confidence_scores
+#
+#     plt.figure(2)
+#     norm = matplotlib.colors.Normalize(vmin=0, vmax=1, clip=True)
+#     mapper = matplotlib.cm.ScalarMappable(norm=norm)
+#     mapper.set_array(confidence_scores)
+#     colors = np.array([mapper.to_rgba(c) for c in confidence_scores])
+#
+#     plt.scatter(poses[:, 0], poses[:, 1], c=colors, s=10)
+#
+#     plt.xlabel('X [m]')
+#     plt.ylabel('Y [m]')
+#     plt.title('Confidence Map')
+#     plt.legend()
+#     cbar = plt.colorbar(mapper)
+#     cbar.set_label('Confidence', rotation=270, weight='bold')
+#     plt.show()
 
 
 def testHandler(test_frame_img_path, test_frame_poses_path, keyframes_img_path, keyframes_poses_path, weights_path,
@@ -406,11 +458,15 @@ def testHandler(test_frame_img_path, test_frame_poses_path, keyframes_img_path, 
             raise ValueError('Invalid metric! Metric must be either euclidean or voronoi!')
 
         # show the result
-        plot_prediction(positive_pred, negative_pred, positive_pred_indices, negative_pred_indices, predictions_path)
+        confidence_scores = calc_top_n_confidence_score(positive_pred_indices, negative_pred_indices,
+                                                        test_frame_descriptors, keyframe_descriptors, top_n_choices,
+                                                        use_min=True)
+        plot_prediction(positive_pred, negative_pred, positive_pred_indices, negative_pred_indices, predictions_path,
+                        confidence_scores, test_frame_xyz)
         # plot_top_n_keyframes(positive_pred_indices, negative_pred_indices, top_n_choices, keyframe_xyz,
         #                      test_frame_xyz_selected, test_frame_xyz)
-        plot_top_n_confidence_score(positive_pred_indices, negative_pred_indices, test_frame_descriptors, top_n_choices,
-                                    test_frame_xyz, use_min=True)
+        # plot_top_n_confidence_score(positive_pred_indices, negative_pred_indices, test_frame_descriptors,
+        #                             keyframe_descriptors, top_n_choices, test_frame_xyz, use_min=True)
 
 
 if __name__ == '__main__':
@@ -433,6 +489,7 @@ if __name__ == '__main__':
     test_weights_path = os.path.join(weights_path, 'last.pth.tar')
     test_descriptors_path = os.path.join(descriptors_path, test_seq)
     test_predictions_path = os.path.join(predictions_path, test_seq)
+    test_weights_path = '/media/vectr/vectr3/Dataset/overlap_transformer/weights/weights_06_13/last.pth.tar'
 
     # seqs = ['mout-forest-loop', 'mout-loop-1', 'mout-water-2', 'mout-water-3_filtered', 'mout-with-vehicles',
     #         'out-and-back-2', 'out-and-back-3', 'parking-lot']

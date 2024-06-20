@@ -79,6 +79,25 @@ def calc_top_n_distances(reference_keyframes_poses, test_frames_poses, top_n=1):
     return top_n_choices
 
 
+def calc_top_n_confidence_score(descriptors, descriptors_kf, top_n_choices, use_min=True):
+    num_frames = descriptors.shape[0]
+    confidence_scores = np.zeros(num_frames)
+    for idx in range(len(descriptors)):
+        curr_descriptor = descriptors[idx, :]
+        top_n_choice = top_n_choices[idx]
+        top_n_descriptors = descriptors_kf[top_n_choice, :]
+        if use_min:
+            top_n_best_dist = np.min(np.linalg.norm(curr_descriptor - top_n_descriptors, axis=1))
+        else:
+            top_n_best_dist = np.mean(np.linalg.norm(curr_descriptor - top_n_descriptors, axis=1))
+        confidence_scores[idx] = top_n_best_dist
+
+    confidence_scores /= np.max(confidence_scores)
+    confidence_scores = np.ones_like(confidence_scores) - confidence_scores
+
+    return confidence_scores
+
+
 def least_squares_points_alignment(src_points, dst_points, weights=None):
     dim = src_points.shape[1]
     num_src_points = src_points.shape[0]
@@ -146,6 +165,10 @@ def test_handler(reference_poses_path, reference_keyframes_poses_path, test_fram
         choices_descriptors = calc_top_n_descriptors(reference_keyframes_descriptors, test_frames_descriptors, top_n=top_n_descriptors)
         choices_distances = calc_top_n_distances(reference_keyframes_xyz, test_frames_xyz_aligned, top_n=top_n_distances)
 
+        # calculate confidence scores
+        confidence_scores = calc_top_n_confidence_score(test_frames_descriptors, reference_keyframes_descriptors,
+                                                        choices_descriptors, use_min=True)
+
         pos_pred = []
         neg_pred = []
         predictions_mask = []
@@ -194,7 +217,7 @@ def test_handler(reference_poses_path, reference_keyframes_poses_path, test_fram
         # plot_skip: avoid dense connection lines
         pos_xyz = test_frames_xyz_aligned[pos_pred, :]
         neg_xyz = test_frames_xyz_aligned[neg_pred, :]
-        plot_method = 'estimated'
+        plot_method = 'aligned'
         plot_skip = 20
 
         colors = ['blue', 'orange', 'gold', 'red', 'purple', 'brown', 'pink', 'violet', 'cyan']
@@ -224,18 +247,33 @@ def test_handler(reference_poses_path, reference_keyframes_poses_path, test_fram
                                                                        linestyles='dashdot')
 
         # ground truth alignment prediction
-        fig, ax = plt.subplots()
-        ax.scatter(reference_frames_xyz[:, 0], reference_frames_xyz[:, 1], c='green', s=10, label='Reference Trajectory')
-        ax.scatter(test_frames_plot[:, 0], test_frames_plot[:, 1], c='grey', s=10, label='Test Trajectory')
-        ax.scatter(reference_keyframes_xyz[:, 0], reference_keyframes_xyz[:, 1], c=colors, s=20)
+        fig, [ax1, ax2] = plt.subplots(1, 2)
+        ax1.scatter(reference_frames_xyz[:, 0], reference_frames_xyz[:, 1], c='violet', s=10, label='Reference Trajectory')
+        ax1.scatter(test_frames_plot[:, 0], test_frames_plot[:, 1], c='grey', s=10, label='Test Trajectory')
+        ax1.scatter(reference_keyframes_xyz[:, 0], reference_keyframes_xyz[:, 1], c=colors, s=20)
         # ax.scatter(test_frames_xyz_aligned[:, 0], test_frames_xyz_aligned[:, 1], c=test_colors)
-        # ax.scatter(pos_xyz[:, 0], pos_xyz[:, 1], c='green', s=0.5)
-        # ax.scatter(neg_xyz[:, 0], neg_xyz[:, 1], c='red', s=0.5)
-        ax.add_collection(test_lines_collections)
-        ax.set_xlabel('x (m)', fontsize=15)
-        ax.set_ylabel('y (m)', fontsize=15)
-        ax.set_title(title, fontsize=20)
-        plt.legend(fontsize=15)
+        ax1.scatter(pos_xyz[:, 0], pos_xyz[:, 1], c='green', s=0.5)
+        ax1.scatter(neg_xyz[:, 0], neg_xyz[:, 1], c='red', s=0.5)
+        # ax1.add_collection(test_lines_collections)
+        ax1.set_xlabel('x (m)', fontsize=15)
+        ax1.set_ylabel('y (m)', fontsize=15)
+        ax1.set_title(title, fontsize=20)
+
+        # plot for confidence
+        norm = matplotlib.colors.Normalize(vmin=0, vmax=1, clip=True)
+        mapper = matplotlib.cm.ScalarMappable(norm=norm)
+        mapper.set_array(confidence_scores)
+        colors = np.array([mapper.to_rgba(c) for c in confidence_scores])
+
+        ax2.scatter(reference_frames_xyz[:, 0], reference_frames_xyz[:, 1], c='violet', s=10, label='Reference Trajectory')
+        ax2.scatter(test_frames_plot[:, 0], test_frames_plot[:, 1], c=colors, s=10)
+        ax2.set_xlabel('x [m]', fontsize=15)
+        ax2.set_ylabel('y [m]', fontsize=15)
+        ax2.set_title('Confidence', fontsize=20)
+        cbar = plt.colorbar(mapper)
+        # cbar.set_label('Confidence', rotation=270, weight='bold')
+
+        # plt.legend(fontsize=15)
         plt.show()
 
         return pos_pred, neg_pred

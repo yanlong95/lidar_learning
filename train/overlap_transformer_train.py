@@ -84,8 +84,8 @@ class trainHandler():
             output_batch = self.model(input_batch)
             o1, o2, o3 = torch.split(output_batch, [1, num_pos, num_neg], dim=0)
             # loss = triplet_loss(o1, o2, o3, self.margin1, lazy=False, ignore_zero_loss=True)
-            loss = triplet_confidence_loss(o1, o2, o3, pos_overlaps, self.margin1, alpha=1.0,
-                                           lazy=False, ignore_zero_loss=True, metric='euclidean')
+            loss = triplet_confidence_loss(o1, o2, o3, pos_overlaps, self.margin1, alpha=0.0,
+                                           lazy=False, ignore_zero_loss=True, metric='cosine')
 
             if loss == -1:
                 continue
@@ -115,7 +115,7 @@ class trainHandler():
             best_val = 0.0
             train_start_str = "Training From Scratch."
 
-        writer1 = SummaryWriter(comment=f"LR_{self.learning_rate}_schedule")
+        writer1 = SummaryWriter(comment=f"LR_{self.learning_rate}_cosine_alpha_0.0_schedule")
 
         overlaps_data = overlaps_loader(self.overlaps_folder, shuffle=True)
         print("=======================================================================\n")
@@ -155,7 +155,8 @@ class trainHandler():
 
 
 if __name__ == '__main__':
-    # load config ================================================================
+    # load config
+    # ================================================================
     config_filename = '/home/vectr/PycharmProjects/lidar_learning/configs/config.yml'
     parameters_path = '/home/vectr/PycharmProjects/lidar_learning/configs/parameters.yml'
 
@@ -187,5 +188,5 @@ if __name__ == '__main__':
             training_seqs: sequences number for training (alone the lines of OverlapNet).
     """
     train_handler = trainHandler(params=parameters, img_folder=train_img_folder, overlaps_folder=train_overlaps_folder,
-                                 weights_folder=weights_folder, resume=False)
+                                 weights_folder=weights_folder, resume=True)
     train_handler.train_eval()
