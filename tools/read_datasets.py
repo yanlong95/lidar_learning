@@ -1,6 +1,7 @@
 import os
 import numpy as np
 import torch
+import einops
 
 from tools.fileloader import read_image, load_xyz_rot
 from data.compute_submaps import compute_submap_keyframes
@@ -150,7 +151,6 @@ def read_one_batch_overlaps_submap(img_folder_path, img_kf_folder_path, overlaps
     """
 
     batch = overlaps[idx, :]
-    submap = submaps[idx, :]
 
     # load query, positive, negative scans; number of positive, negative scans; sequence; overlap threshold; overlaps
     anchor_index = batch[0]                             # current frame iddex
@@ -162,7 +162,7 @@ def read_one_batch_overlaps_submap(img_folder_path, img_kf_folder_path, overlaps
     neg_samples_indices = batch[105:num_neg+105]        # indices of negative pairs for current scan
     pos_samples_overlaps = batch[205:num_pos+205]       # overlap values of positive pairs for current scan
     neg_samples_overlaps = batch[305:num_neg+305]       # overlap values of negative pairs for current scan
-    size_submap = submap.shape[0]                       # number of keyframes in each submap
+    size_submap = submaps.shape[1]                      # number of keyframes in each submap
 
     if shuffle:
         pos_shuffle_indices = np.arange(len(pos_samples_indices))
@@ -187,34 +187,52 @@ def read_one_batch_overlaps_submap(img_folder_path, img_kf_folder_path, overlaps
     neg_samples_batch = torch.zeros(num_neg, channels, height, width, dtype=torch.float32).to(device)
     pos_samples_batch_overlaps = torch.zeros(num_pos, dtype=torch.float32).to(device)
     neg_samples_batch_overlaps = torch.zeros(num_neg, dtype=torch.float32).to(device)
-    submap_batch = torch.zeros(size_submap, channels, height, width, dtype=torch.float32).to(device)
+    # anchor_submap_batch = torch.zeros(channels, height, width * size_submap, dtype=torch.float32).to(device)
+    pos_samples_submap_batch = torch.zeros(num_pos, channels, height, width * size_submap, dtype=torch.float32).to(device)
+    neg_samples_submap_batch = torch.zeros(num_neg, channels, height, width * size_submap, dtype=torch.float32).to(device)
 
     # load anchor tensor
     anchor_img_path = os.path.join(img_folder_path, seq, f'{str(anchor_index).zfill(6)}.png')
     anchor_batch = read_image(anchor_img_path, device)
+    anchor_submap_batch = anchor_batch.unqueeze(-1).repeat(size_submap)
+    # anchor_submap_batch = einops.repeat(anchor_batch, 'b c h w -> b c h (repeat w)', repeat=size_submap)
 
     # load positive tensors
     for i in range(num_pos):
-        img_path = os.path.join(img_folder_path, seq, f'{str(pos_samples_indices[i]).zfill(6)}.png')
+        sample_idx = pos_samples_indices[i]
+        img_path = os.path.join(img_folder_path, seq, f'{str(sample_idx).zfill(6)}.png')
         img_tensor = read_image(img_path, device).squeeze()     # in shape (1, H, W)
         pos_samples_batch[i, :, :, :] = img_tensor
         pos_samples_batch_overlaps[i] = pos_samples_overlaps[i]
 
+        # load keyframes for positive samples submap
+        for j in range(size_submap):
+            img_path = os.path.join(img_kf_folder_path, seq, f'png_files/512/{str(submaps[sample_idx, j]).zfill(6)}.png')
+            img_tensor = read_image(img_path, device).squeeze()  # in shape (1, H, W)
+            pos_samples_submap_batch[i, :, :, width*j:width*(j+1)] = img_tensor
+
     # load negative tensors
     for i in range(num_neg):
-        img_path = os.path.join(img_folder_path, seq, f'{str(neg_samples_indices[i]).zfill(6)}.png')
+        sample_idx = neg_samples_indices[i]
+        img_path = os.path.join(img_folder_path, seq, f'{str(sample_idx).zfill(6)}.png')
         img_tensor = read_image(img_path, device).squeeze()     # in shape (1, H, W)
         neg_samples_batch[i, :, :, :] = img_tensor
         neg_samples_batch_overlaps[i] = neg_samples_overlaps[i]
 
-    # load keyframes for submap
-    for i in range(size_submap):
-        img_path = os.path.join(img_kf_folder_path, seq, f'png_files/512/{str(submap[i]).zfill(6)}.png')
-        img_tensor = read_image(img_path, device).squeeze()     # in shape (1, H, W)
-        submap_batch[i, :, :, :] = img_tensor
+        # load keyframes for negative samples submap
+        for j in range(size_submap):
+            img_path = os.path.join(img_kf_folder_path, seq, f'png_files/512/{str(submaps[sample_idx, j]).zfill(6)}.png')
+            img_tensor = read_image(img_path, device).squeeze()  # in shape (1, H, W)
+            neg_samples_submap_batch[i, :, :, width*j:width*(j+1)] = img_tensor
+
+    # # load keyframes for anchor submap
+    # for i in range(size_submap):
+    #     img_path = os.path.join(img_kf_folder_path, seq, f'png_files/512/{str(submaps[idx, i]).zfill(6)}.png')
+    #     img_tensor = read_image(img_path, device).squeeze()     # in shape (1, H, W)
+    #     anchor_submap_batch[i, :, :, :] = img_tensor
 
     return (anchor_batch, pos_samples_batch, neg_samples_batch, pos_samples_batch_overlaps, neg_samples_batch_overlaps,
-            submap_batch, num_pos, num_neg)
+            anchor_submap_batch, pos_samples_submap_batch, neg_samples_submap_batch, num_pos, num_neg)
 
 
 if __name__ == '__main__':
