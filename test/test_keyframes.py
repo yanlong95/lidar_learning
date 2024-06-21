@@ -10,6 +10,7 @@ import numpy as np
 from scipy.spatial import Voronoi, voronoi_plot_2d, Delaunay, transform
 from modules.overlap_transformer import OverlapTransformer32
 from tools.fileloader import load_files, load_xyz_rot, read_image
+from tools.utils_func import compute_top_k_keyframes
 import faiss
 import yaml
 import tqdm
@@ -132,8 +133,8 @@ def calc_voronoi_map(keyframe_poses):
     return delaunay_triangulation, voronoi
 
 
-def calc_top_n_voronoi(keyframe_poses, keyframe_descriptors, keyframe_voronoi_region, test_frame_poses, test_frame_descriptors,
-               top_n=5):
+def calc_top_n_voronoi(keyframe_poses, keyframe_descriptors, keyframe_voronoi_region, test_frame_poses,
+                       test_frame_descriptors, top_n=5):
     num_test_frames = len(test_frame_poses)
 
     # initialize searching
@@ -402,11 +403,12 @@ def plot_top_n_keyframes(positive_pred_indices, negative_pred_indices, top_n_cho
 
 
 def testHandler(test_frame_img_path, test_frame_poses_path, keyframes_img_path, keyframes_poses_path, weights_path,
-                descriptors_path, predictions_path, test_selection=1, load_descriptors=False, metric='euclidean'):
+                descriptors_path, predictions_path,  test_selection=1, load_descriptors=False,
+                metric='euclidean'):
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
     amodel = OverlapTransformer32(height=32, width=512, channels=1, use_transformer=True).to(device)
 
-    with torch.no_grad():
+    with ((torch.no_grad())):
         # load model
         print(f'Load weights from {weights_path}')
         checkpoint = torch.load(weights_path, map_location=torch.device('cpu'))
@@ -478,8 +480,9 @@ if __name__ == '__main__':
     keyframe_path = config["data_root"]["keyframes"]
     descriptors_path = config["data_root"]["descriptors"]
     predictions_path = config["data_root"]["predictions"]
+    overlaps_path = config["data_root"]["overlaps"]
     weights_path = config["data_root"]["weights"]
-    test_seq = config["seqs"]["test"][8]
+    test_seq = config["seqs"]["test"][9]
     # ============================================================================
 
     test_frame_img_path = os.path.join(frame_img_path, '512', test_seq)
@@ -514,4 +517,4 @@ if __name__ == '__main__':
 
     testHandler(test_frame_img_path, test_frame_pose_path, test_keyframe_img_path, test_keyframe_poses_path,
                 test_weights_path, test_descriptors_path, test_predictions_path, test_selection=1,
-                load_descriptors=False, metric='voronoi')
+                load_descriptors=True, metric='voronoi')

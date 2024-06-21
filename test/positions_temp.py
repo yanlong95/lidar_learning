@@ -27,9 +27,9 @@ def alignment_ground_truth(xyz, T):
     return traj
 
 
-def alignment_estimated(clusters, keyframes):
+def alignment_estimated_cluster_2_point(clusters, keyframes):
     if len(clusters) != len(keyframes):
-        raise 'Clusters and selected keyframes do not match!!!'
+        raise 'Number of clusters and selected keyframes do not match!!!'
 
     centroids = np.zeros((len(clusters), 3))
     keyframes = np.array(keyframes)
@@ -39,6 +39,13 @@ def alignment_estimated(clusters, keyframes):
         centroids[i, :] = centroid
 
     R, t = least_squares_points_alignment(centroids, keyframes)
+    return R, t
+
+
+def alignment_estimated_point_2_point(points, keyframes):
+    if len(points) != len(keyframes):
+        raise 'Number of points and selected keyframes do not match!!!'
+    R, t = least_squares_points_alignment(points, keyframes)
     return R, t
 
 
@@ -204,20 +211,31 @@ def test_handler(reference_poses_path, reference_keyframes_poses_path, test_fram
         pos_third_piece = pos_xyz_unaligned[200:295, :]
         neg_forth_piece = neg_xyz_unaligned[600:634, :]
 
+        # align by clusters and keyframes
         clusters = [pos_first_piece, pos_second_piece, pos_third_piece,
                     neg_forth_piece]
         clusters_keyframes = [reference_keyframes_xyz[-3], reference_keyframes_xyz[-1], reference_keyframes_xyz[-3],
                               reference_keyframes_xyz[-2]]
 
-        R, t = alignment_estimated(clusters, clusters_keyframes)
+        # align by confidence scores (point to point alignment)
+        confidence_threshold = 0.4
+        confidence_mask = confidence_scores > confidence_threshold
+        confidence_points = test_frames_xyz[confidence_mask, :]
+        confidence_keyframes = reference_keyframes_xyz[choices_descriptors[confidence_mask, 0]]     # 0: only use top 1
+
+        # R, t = alignment_estimated_cluster_2_point(clusters, clusters_keyframes)
+        # test_frames_xyz_estimated = test_frames_xyz @ R + t
+
+        R, t = alignment_estimated_point_2_point(confidence_points, confidence_keyframes)
         test_frames_xyz_estimated = test_frames_xyz @ R + t
+
 
         # plot
         # plot_method: aligned, unaligned, estimated
         # plot_skip: avoid dense connection lines
         pos_xyz = test_frames_xyz_aligned[pos_pred, :]
         neg_xyz = test_frames_xyz_aligned[neg_pred, :]
-        plot_method = 'aligned'
+        plot_method = 'estimated'
         plot_skip = 20
 
         colors = ['blue', 'orange', 'gold', 'red', 'purple', 'brown', 'pink', 'violet', 'cyan']
@@ -249,15 +267,17 @@ def test_handler(reference_poses_path, reference_keyframes_poses_path, test_fram
         # ground truth alignment prediction
         fig, [ax1, ax2] = plt.subplots(1, 2)
         ax1.scatter(reference_frames_xyz[:, 0], reference_frames_xyz[:, 1], c='violet', s=10, label='Reference Trajectory')
-        ax1.scatter(test_frames_plot[:, 0], test_frames_plot[:, 1], c='grey', s=10, label='Test Trajectory')
+        ax1.scatter(test_frames_xyz_aligned[:, 0], test_frames_xyz_aligned[:, 1], c='grey', s=10, label='Test Ground Truth')
+        ax1.scatter(test_frames_plot[:, 0], test_frames_plot[:, 1], c='blue', s=10, label='Test Prediction')
         ax1.scatter(reference_keyframes_xyz[:, 0], reference_keyframes_xyz[:, 1], c=colors, s=20)
         # ax.scatter(test_frames_xyz_aligned[:, 0], test_frames_xyz_aligned[:, 1], c=test_colors)
-        ax1.scatter(pos_xyz[:, 0], pos_xyz[:, 1], c='green', s=0.5)
-        ax1.scatter(neg_xyz[:, 0], neg_xyz[:, 1], c='red', s=0.5)
+        # ax1.scatter(pos_xyz[:, 0], pos_xyz[:, 1], c='green', s=0.5)
+        # ax1.scatter(neg_xyz[:, 0], neg_xyz[:, 1], c='red', s=0.5)
         # ax1.add_collection(test_lines_collections)
         ax1.set_xlabel('x (m)', fontsize=15)
         ax1.set_ylabel('y (m)', fontsize=15)
         ax1.set_title(title, fontsize=20)
+        ax1.legend(fontsize=15)
 
         # plot for confidence
         norm = matplotlib.colors.Normalize(vmin=0, vmax=1, clip=True)

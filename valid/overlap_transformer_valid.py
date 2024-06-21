@@ -9,7 +9,7 @@ from modules.losses.overlap_transformer_loss import mean_squared_error_loss
 from tools.fileloader import load_files, read_image, load_xyz_rot
 
 
-def validation(model, top_n=5):
+def validation(model, top_n=5, metric='euclidean'):
     # ===============================================================================
     # loading paths and parameters
     config_filename = '/home/vectr/PycharmProjects/lidar_learning/configs/config.yml'
@@ -70,7 +70,12 @@ def validation(model, top_n=5):
 
         # searching (all scans and keyframes)
         d = descriptors.shape[1]
-        index = faiss.IndexFlatL2(d)
+        if metric == 'euclidean':
+            index = faiss.IndexFlatL2(d)
+        elif metric == 'cosine':
+            index = faiss.IndexFlatIP(d)
+        else:
+            raise ValueError('Unknown metric!')
         index.add(descriptors)
 
         index_kf = faiss.IndexFlatL2(d)

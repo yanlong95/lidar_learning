@@ -21,8 +21,8 @@ seqs:
 #  train: [ "bomb_shelter"]
   valid: ["geo_loop"]
 #  test: ["geo_loop", "royce_hall", "sculpture_garden"]
-  test: ["bomb_shelter", "botanical_garden", "bruin_plaza", "court_of_sciences", "dickson_court", "luskin", "geo_loop",
-         "royce_hall", "sculpture_garden"]
+  test: ["bomb_shelter", "botanical_garden", "bruin_plaza", "court_of_sciences", "dickson_court", "geo_loop", "luskin",
+         "kerckhoff", "royce_hall", "sculpture_garden"]
 
 # used for old version test
 test_config:
