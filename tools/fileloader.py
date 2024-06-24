@@ -93,7 +93,7 @@ def load_descriptors(file_path):
 
 def load_overlaps(file_path):
     """
-    Load the overlaps file (.bin or .npy).
+    Load the overlaps file (.bin, .npy or .npz).
 
     Args:
         file_path: (string) the path of the file containing the descriptors
@@ -107,12 +107,14 @@ def load_overlaps(file_path):
     _, ext = os.path.splitext(full_path)
     if ext == '.bin':
         overlaps = np.fromfile(file_path)
+        overlaps = overlaps.reshape(-1, int(np.sqrt(len(overlaps))))
     elif ext == '.npy':
         overlaps = np.load(full_path, allow_pickle=True).astype(np.float32)
+        overlaps = overlaps.reshape(-1, int(np.sqrt(len(overlaps))))
+    elif ext == '.npz':
+        overlaps = np.load(full_path, allow_pickle=True)['arr_0'].astype(np.float32)    # rectangular matrix (n, 405)
     else:
         raise TypeError(f'Overlaps file {full_path} cannot be read!')
-
-    overlaps = overlaps.reshape(-1, int(np.sqrt(len(overlaps))))
 
     return overlaps
 

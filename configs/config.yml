@@ -1,12 +1,11 @@
 data_root:
   descriptors: "/media/vectr/vectr3/Dataset/overlap_transformer/descriptors"
-#  gt_overlap: "/media/vectr/T9/Dataset/overlap_transformer/gt_overlap"
   gt_overlaps: "/media/vectr/vectr3/Dataset/overlap_transformer/gt_overlaps"
   keyframes: "/media/vectr/vectr3/Dataset/overlap_transformer/keyframes"
   npy_files: "/media/vectr/vectr3/Dataset/overlap_transformer/npy_files"
   overlaps: "/media/vectr/vectr3/Dataset/overlap_transformer/overlaps"
   pcd_files: "/media/vectr/vectr3/Dataset/overlap_transformer/pcd_files"
-  png_files: "/media/vectr/vectr3/Dataset/overlap_transformer/png_files"
+  png_files: "/media/vectr/vectr3/Dataset/overlap_transformer/png_files/512"
   poses: "/media/vectr/vectr3/Dataset/overlap_transformer/poses"
   test: "/media/vectr/vectr3/Dataset/overlap_transformer/test"
 #  weights: "/media/vectr/vectr3/Dataset/overlap_transformer/weights/weights_06_10"

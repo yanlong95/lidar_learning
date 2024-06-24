@@ -165,15 +165,15 @@ if __name__ == '__main__':
     config = yaml.safe_load(open(config_filename))
     params = yaml.safe_load(open(parameters_path))
 
-    range_images_folder = config["data_root"]["png_files"]
-    gt_overlaps_folder = config["data_root"]["gt_overlaps"]
+    train_img_folder = config["data_root"]["png_files"]
+    train_overlaps_folder = config["data_root"]["gt_overlaps"]
     weights_folder = config["data_root"]["weights"]
     train_seqs = config["seqs"]["train"]
     parameters = params['learning']
     # ============================================================================
 
-    train_overlaps_folder = [os.path.join(gt_overlaps_folder, seq, 'overlaps_train.npz') for seq in train_seqs]
-    train_img_folder = os.path.join(range_images_folder, '512')
+    train_overlaps_paths = [os.path.join(train_overlaps_folder, seq, 'overlaps_train.npz') for seq in train_seqs]
+    # train_img_folder = os.path.join(train_img_folder, '512')
     # model_dir = '/home/vectr/PycharmProjects/lidar_learning/model'
 
     """
@@ -189,6 +189,6 @@ if __name__ == '__main__':
             train_set: traindata_npzfiles (alone the lines of OverlapNet).
             training_seqs: sequences number for training (alone the lines of OverlapNet).
     """
-    train_handler = trainHandler(params=parameters, img_folder=train_img_folder, overlaps_folder=train_overlaps_folder,
+    train_handler = trainHandler(params=parameters, img_folder=train_img_folder, overlaps_folder=train_overlaps_paths,
                                  weights_folder=weights_folder, resume=True)
     train_handler.train_eval()

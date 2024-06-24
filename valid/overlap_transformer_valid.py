@@ -5,162 +5,159 @@ import yaml
 import torch
 import numpy as np
 from modules.overlap_transformer import OverlapTransformer32
-from modules.losses.overlap_transformer_loss import mean_squared_error_loss
-from tools.fileloader import load_files, read_image, load_xyz_rot
+from modules.losses.overlap_transformer_loss import triplet_confidence_loss
+from tools.fileloader import load_files, load_xyz_rot, load_overlaps, read_image
+from tools.read_datasets import read_one_batch_overlaps
+from tools.utils import RunningAverage
+from tools.utils_func import compute_top_k_keyframes
 
 
-def validation(model, top_n=5, metric='euclidean'):
+def validation(model, top_n=5, metric='euclidean', method='overlap'):
+    """
+    Validation function for the overlap transformer model.
+    Args:
+        model: (nn.module) the pytorch model.
+        top_n: (int) the number of top keyframes to search.
+        metric: (string) the metric to search the top keyframes (euclidean or cosine).
+        method: (string) the method to validate the model (euclidean or overlap).
+    Returns:
+        loss: (float) the loss of the model.
+        recall: (float) the recall of the model.
+    """
     # ===============================================================================
     # loading paths and parameters
     config_filename = '/home/vectr/PycharmProjects/lidar_learning/configs/config.yml'
+    params_filename = '/home/vectr/PycharmProjects/lidar_learning/configs/parameters.yml'
     config = yaml.safe_load(open(config_filename))
-    valid_scans_folder = config['data_root']['png_files']
-    ground_truth_folder = config['data_root']['gt_overlaps']
-    valid_seq = config['seqs']['valid'][0]
+    params = yaml.safe_load(open(params_filename))
 
+    img_folder = config['data_root']['png_files']                                       # img path for all frames
+    overlaps_folder = config['data_root']['gt_overlaps']
+    overlaps_table_folder = config['data_root']['overlaps']
     poses_folder = config['data_root']['poses']
     keyframes_folder = config['data_root']['keyframes']
+
+    valid_seq = config['seqs']['valid'][0]
+    channels = params['learning']['channels']
+    height = params['learning']['height']
+    width = params['learning']['width']
+    margin1 = params['learning']['margin1']
+    alpha = params['learning']['alpha']
+    num_pos_max = params['learning']['num_pos_max']
+    num_neg_max = params['learning']['num_neg_max']
     # ===============================================================================
-    device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+    valid_img_folder = os.path.join(img_folder, valid_seq)                       # img path for validation frames
+    valid_img_kf_folder = os.path.join(keyframes_folder, valid_seq, 'png_files/512')    # img path for keyframes
 
-    valid_scan_paths = load_files(os.path.join(valid_scans_folder, '512', valid_seq))
-    ground_truth_paths = os.path.join(ground_truth_folder, valid_seq, 'overlaps.npz')
-    ground_truth_overlaps = np.load(ground_truth_paths)['arr_0']
-
-    # find the closest top_n keyframes for each scan
     poses_paths = os.path.join(poses_folder, valid_seq, 'poses.txt')
     poses_kf_paths = os.path.join(keyframes_folder, valid_seq, 'poses/poses_kf.txt')
-    img_kf_paths = load_files(os.path.join(keyframes_folder, valid_seq, 'png_files/512'))
+    valid_overlaps_path = os.path.join(overlaps_folder, valid_seq, 'overlaps.npz')
+    valid_overlaps_table_path = os.path.join(overlaps_table_folder, f'{valid_seq}.bin')
+
+    # # valid_scan_paths = load_files(os.path.join(valid_scans_folder, '512', valid_seq))
+    # # ground_truth_paths = os.path.join(ground_truth_folder, valid_seq, 'overlaps.npz')
+    # # ground_truth_overlaps = np.load(ground_truth_paths)['arr_0']
+    #
+    # # find the closest top_n keyframes for each scan
+    # poses_paths = os.path.join(poses_folder, valid_seq, 'poses.txt')
+    # poses_kf_paths = os.path.join(keyframes_folder, valid_seq, 'poses/poses_kf.txt')
+    # img_kf_paths = load_files(os.path.join(keyframes_folder, valid_seq, 'png_files/512'))
+
+    device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
     xyz, _ = load_xyz_rot(poses_paths)
     xyz_kf, _ = load_xyz_rot(poses_kf_paths)
+    img_paths = load_files(valid_img_folder)
+    img_kf_paths = load_files(valid_img_kf_folder)
+    overlaps = load_overlaps(valid_overlaps_path)
 
-    index_dists = faiss.IndexFlatL2(3)
-    index_dists.add(xyz_kf)
-    D_dists, I_dists = index_dists.search(xyz, top_n)
+    assert metric == 'euclidean' or metric == 'cosine', "Unknown metric! Must be 'euclidean' or 'cosine'!"
+    assert method == 'euclidean' or method == 'overlap', "Unknown method! Must be 'euclidean' or 'overlap'!"
 
     # calculate descriptors and searching
     with torch.no_grad():
-        num_scans = len(valid_scan_paths)
-        num_kf = len(xyz_kf)
+        model.eval()
+        num_scans = len(img_paths)
+        num_scans_kf = len(img_kf_paths)
 
+        # -----------------------------------------------------------------------------------------------
+        # compute loss for validation set
+        loss_avg = RunningAverage()
+        for i in tqdm.tqdm(range(num_scans)):
+            # read batch
+            anchor_batch, pos_batch, neg_batch, pos_overlaps, neg_overlaps, num_pos, num_neg = read_one_batch_overlaps(
+                img_folder, overlaps, i, channels, height, width, num_pos_max, num_neg_max, device, shuffle=False)
+
+            # in case no pair
+            if num_pos == 0 or num_neg == 0:
+                continue
+
+            input_batch = torch.cat((anchor_batch, pos_batch, neg_batch), dim=0)
+            output_batch = model(input_batch)
+            o1, o2, o3 = torch.split(output_batch, [1, num_pos, num_neg], dim=0)
+            loss = triplet_confidence_loss(o1, o2, o3, pos_overlaps, margin1, alpha=alpha, lazy=False,
+                                           ignore_zero_loss=True, metric=metric)
+            # in case no valid loss
+            if loss == -1:
+                continue
+            else:
+                loss_avg.update(loss.item())
+
+        # -----------------------------------------------------------------------------------------------
         # calculate all descriptors
-        descriptors = np.zeros((num_scans, 256))
+        descriptors = np.zeros((num_scans, 256), dtype='float32')
         for i in tqdm.tqdm(range(num_scans)):
             # load a scan
-            current_batch = read_image(valid_scan_paths[i], device)
-            current_batch = torch.cat((current_batch, current_batch), dim=0)        # no idea why, keep it now
+            current_batch = read_image(img_paths[i], device)
+            current_batch = torch.cat((current_batch, current_batch), dim=0)        # no idea why, keep it now, need to test and remove !!!!!
 
             # calculate descriptor
-            model.eval()
             current_descriptor = model(current_batch)
             descriptors[i, :] = current_descriptor[0, :].cpu().detach().numpy()
         descriptors = descriptors.astype('float32')
 
         # calculate keyframe descriptors
-        descriptors_kf = np.zeros((num_kf, 256))
-        for i in range(num_kf):
+        descriptors_kf = np.zeros((num_scans_kf, 256), dtype='float32')
+        for i in range(num_scans_kf):
             current_batch = read_image(img_kf_paths[i], device)
-            current_batch = torch.cat((current_batch, current_batch), dim=0)        # no idea why, keep it now
+            current_batch = torch.cat((current_batch, current_batch), dim=0)        # no idea why, keep it now, need to test and remove !!!!!
 
-            model.eval()
             current_descriptor = model(current_batch)
             descriptors_kf[i, :] = current_descriptor[0, :].cpu().detach().numpy()
         descriptors_kf = descriptors_kf.astype('float32')
 
+        # -----------------------------------------------------------------------------------------------
         # searching (all scans and keyframes)
         d = descriptors.shape[1]
-        if metric == 'euclidean':
-            index = faiss.IndexFlatL2(d)
-        elif metric == 'cosine':
-            index = faiss.IndexFlatIP(d)
-        else:
-            raise ValueError('Unknown metric!')
-        index.add(descriptors)
+        index_kf = faiss.IndexFlatL2(d) if metric == 'euclidean' else faiss.IndexFlatIP(d)
 
-        index_kf = faiss.IndexFlatL2(d)
+        # compute closest keyframes for validation set based on the prediction
         index_kf.add(descriptors_kf)
+        _, top_n_keyframes_pred = index_kf.search(descriptors, top_n)
 
-        # search the closest descriptors for each one in the validation set
-        """
-        2 ways to calculate the validation.
-        a. search the closest descriptors, if their overlap values greater than the threshold, then positive prediction
-           (not recommend as most of top_n scans are close to current scan even for a random model. choose a large top_n
-           if you want to use this way).
-        b. search top_n positive and negative descriptors, if distances between the all positive descriptors are smaller
-           than the negative descriptors, then positive prediction.
-        c. add another valid method. choose the top n closest keyframes based on the distance of descriptors, if any 
-           chosen keyframe is the closest keyframe based on global distance, then a correct prediction.
-        d. compute the losses for all pairs (MSE between estimated overlaps and true overlaps).
-        """
+        # calculate the closest keyframe based on the distances or overlap values (top 1 ground truth)
+        top_n_keyframes = compute_top_k_keyframes(poses_paths, poses_kf_paths, valid_overlaps_table_path, top_k=1,
+                                                  metric=method)
 
         num_pos_pred = 0
-        # method = 'overlap_thresh'         # a
-        method = 'pos_neg_descriptors'      # b
-        # method = 'closest_keyframe'       # c
-        # method = 'overlap'                # d
-
+        num_pos_pred_within_dist_threshold = 0
         for i in range(num_scans):
-            ground_truth = ground_truth_overlaps[i]
-            pos_scans = ground_truth[ground_truth[:, 2] >= ground_truth[:, 3]]
-            neg_scans = ground_truth[ground_truth[:, 2] < ground_truth[:, 3]]
+            # check if any predicted keyframes is the true closest keyframe
+            top_n_kf_ground_truth = top_n_keyframes[i, 0]
+            top_n_kf_prediction = top_n_keyframes_pred[i, :]
+            if top_n_kf_ground_truth in top_n_kf_prediction:
+                num_pos_pred += 1
 
-            # in case no enough positive scans
-            top_n = min(len(pos_scans), top_n)
+            # check if any of the current frame and the predicted keyframes is within the distance threshold
+            dists = np.linalg.norm(xyz_kf[top_n_kf_prediction, :] - xyz[i, :], axis=1)
+            if np.any(dists < 5.0):
+                num_pos_pred_within_dist_threshold += 1
 
-            if method == 'overlap_thresh':
-                D, I = index.search(descriptors[i, :].reshape(1, -1), top_n)
-
-                if I[:, 0] == i:
-                    min_index = I[:, 1:]
-                else:
-                    min_index = I[:, :]
-
-                if np.all(ground_truth[min_index, 2] > ground_truth[min_index, 3]):
-                    num_pos_pred += 1
-            elif method == 'pos_neg_descriptors':
-                pos_indices = np.random.choice(pos_scans[:, 1], top_n, replace=False).astype(int)
-                neg_indices = np.random.choice(neg_scans[:, 1], top_n, replace=False).astype(int)
-
-                pos_descriptors = descriptors[pos_indices, :]
-                neg_descriptors = descriptors[neg_indices, :]
-
-                pos_dists = np.linalg.norm(pos_descriptors - descriptors[i, :], axis=1)
-                neg_dists = np.linalg.norm(neg_descriptors - descriptors[i, :], axis=1)
-
-                num_pos_pred_j = 0
-                for j in range(top_n):
-                    if np.all(pos_dists[j] - neg_dists <= 0):
-                        num_pos_pred_j += 1
-                if num_pos_pred_j == top_n:
-                    num_pos_pred += 1
-            elif method == 'closest_keyframe':
-                D_kf, I_kf = index_kf.search(descriptors[i, :].reshape(1, -1), top_n)
-                min_index_kf = I_kf[:, :]
-                min_index_dists = I_dists[i, :]
-                intersection = np.intersect1d(min_index_kf, min_index_dists)
-                if intersection.size > 0:       # change to top_n // 2 for hard mode
-                    num_pos_pred += 1
-            else:
-                pos_indices = pos_scans[:, 1].astype(int)
-                neg_indices = np.random.choice(neg_scans[:, 1], len(pos_scans), replace=False).astype(int)  # balance
-                anchor_tensor = torch.tensor(descriptors[i, :].reshape(1, -1)).to(device)
-                pos_tensors = torch.tensor(descriptors[pos_indices, :]).to(device)
-                neg_tensors = torch.tensor(descriptors[neg_indices, :]).to(device)
-                pos_overlaps = torch.from_numpy(ground_truth[pos_indices, 2]).to(device)
-                neg_overlaps = torch.from_numpy(ground_truth[neg_indices, 2]).to(device)
-                loss = mean_squared_error_loss(anchor_tensor, pos_tensors, neg_tensors, pos_overlaps, neg_overlaps,
-                                               alpha=1.0)
-                print(f'loss: {loss.item()}')
-                return loss.item()
-
-
-    # precision = num_pos_pred / (top_n * num_valid)
-    precision = num_pos_pred / num_scans
-    # precision_neg = num_neg_pred / num_valid
-    print(f'top {top_n} precision: {precision}.\n')
-    # print(f'top {top_n} precision_neg: {precision_neg}')
-    return precision
+        # calculate the average loss and recall
+        avg_loss = loss_avg()
+        recall = num_pos_pred / num_scans
+        recall_within_dist_threshold = num_pos_pred_within_dist_threshold / num_scans
+        return avg_loss, recall, recall_within_dist_threshold
 
 
 if __name__ == '__main__':
