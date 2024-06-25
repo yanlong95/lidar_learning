@@ -19,7 +19,7 @@ from modules.overlap_transformer import OverlapTransformer32
 from modules.losses.overlap_transformer_loss import triplet_loss, triplet_confidence_loss
 from valid.overlap_transformer_valid import validation
 from tools.read_datasets import overlaps_loader, read_one_batch_overlaps
-from tools.utils import RunningAverage, save_checkpoint
+from tools.utils import RunningAverage, save_checkpoint, load_checkpoint
 
 
 class trainHandler():
@@ -105,11 +105,13 @@ class trainHandler():
         epochs = self.num_epochs
 
         if self.resume:
-            checkpoint = torch.load(self.restore_path)
-            start_epoch = checkpoint['epoch'] + 1
-            self.model.load_state_dict(checkpoint['state_dict'])
-            self.optimizer.load_state_dict(checkpoint['optimizer'])
-            best_val = checkpoint['best_val']
+            # checkpoint = torch.load(self.restore_path)
+            # start_epoch = checkpoint['epoch'] + 1
+            # self.model.load_state_dict(checkpoint['state_dict'])
+            # self.optimizer.load_state_dict(checkpoint['optimizer'])
+            # best_val = checkpoint['best_val']
+            epoch, best_val = load_checkpoint(self.restore_path, self.model, self.optimizer)
+            start_epoch = epoch + 1
             train_start_str = f"Resuming from {self.restore_path}."
 
         else:
@@ -117,7 +119,7 @@ class trainHandler():
             best_val = 0.0
             train_start_str = "Training From Scratch."
 
-        writer1 = SummaryWriter(comment=f"LR_{self.learning_rate}_{self.metric}_alpha_{self.alpha}_schedule")
+        writer1 = SummaryWriter(comment=f"LR_{self.learning_rate}_{self.metric}_alpha_{self.alpha}_schedule_margin1_{self.margin1}")
 
         overlaps_data = overlaps_loader(self.overlaps_folder, shuffle=True)
         print("=======================================================================\n")
@@ -130,12 +132,14 @@ class trainHandler():
             print(f'training with epoch: {epoch}')
             loss = self.train()
             self.scheduler.step()
-            writer1.add_scalar("losses", loss, global_step=epoch)
+            writer1.add_scalar("train_losses", loss, global_step=epoch)
 
             # validate model
             with torch.no_grad():
-                topn_rate = validation(self.model, top_n=5)
+                loss_valid, topn_rate, topn_rate_dist = validation(self.model, top_n=5)
                 writer1.add_scalar("topn_rate", topn_rate, global_step=epoch)
+                writer1.add_scalar("valid_losses", loss_valid, global_step=epoch)
+                writer1.add_scalar("topn_rate_dist", topn_rate_dist, global_step=epoch)
 
             # check if current model has the best validation rate
             if topn_rate >= best_val:
@@ -190,5 +194,5 @@ if __name__ == '__main__':
             training_seqs: sequences number for training (alone the lines of OverlapNet).
     """
     train_handler = trainHandler(params=parameters, img_folder=train_img_folder, overlaps_folder=train_overlaps_paths,
-                                 weights_folder=weights_folder, resume=True)
+                                 weights_folder=weights_folder, resume=False)
     train_handler.train_eval()

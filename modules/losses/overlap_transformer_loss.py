@@ -151,7 +151,7 @@ def triplet_loss(q_vec, pos_vecs, neg_vecs, margin, use_min=False, lazy=False, i
 
 
 def triplet_confidence_loss(q_vec, pos_vecs, neg_vecs, pos_overlaps, margin, alpha=1.0, use_min=False, lazy=False,
-                            ignore_zero_loss=False, metric='euclidean'):
+                            ignore_zero_loss=True, metric='euclidean'):
     """
     Calculate the (lazy) triplet losses combine with a confidence loss function to minimize the overlaps and similarity
     between query and positive vectors.

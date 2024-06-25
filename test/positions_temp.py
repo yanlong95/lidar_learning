@@ -42,10 +42,10 @@ def alignment_estimated_cluster_2_point(clusters, keyframes):
     return R, t
 
 
-def alignment_estimated_point_2_point(points, keyframes):
+def alignment_estimated_point_2_point(points, keyframes, weights=None):
     if len(points) != len(keyframes):
         raise 'Number of points and selected keyframes do not match!!!'
-    R, t = least_squares_points_alignment(points, keyframes)
+    R, t = least_squares_points_alignment(points, keyframes, weights)
     return R, t
 
 
@@ -226,7 +226,7 @@ def test_handler(reference_poses_path, reference_keyframes_poses_path, test_fram
         # R, t = alignment_estimated_cluster_2_point(clusters, clusters_keyframes)
         # test_frames_xyz_estimated = test_frames_xyz @ R + t
 
-        R, t = alignment_estimated_point_2_point(confidence_points, confidence_keyframes)
+        R, t = alignment_estimated_point_2_point(confidence_points, confidence_keyframes, weights=confidence_scores[confidence_mask])
         test_frames_xyz_estimated = test_frames_xyz @ R + t
 
 

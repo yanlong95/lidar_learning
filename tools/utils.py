@@ -109,12 +109,14 @@ def load_checkpoint(checkpoint, model, optimizer=None):
         raise FileNotFoundError('Checkpoint not found!')
 
     checkpoint = torch.load(checkpoint)
-    model.load_state_dict(checkpoint['model_state_dict'])
+    model.load_state_dict(checkpoint['state_dict'])
+    epoch = checkpoint['epoch']
+    best_val = checkpoint['best_val']
 
     if optimizer is not None:
-        optimizer.load_state_dict(checkpoint['optimizer_state_dict'])
+        optimizer.load_state_dict(checkpoint['optimizer'])
 
-    return checkpoint
+    return epoch, best_val
 
 
 def set_logger(log_path):

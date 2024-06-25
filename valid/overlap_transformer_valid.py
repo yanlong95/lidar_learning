@@ -4,15 +4,17 @@ import faiss
 import yaml
 import torch
 import numpy as np
+import time
+import matplotlib.pyplot as plt
 from modules.overlap_transformer import OverlapTransformer32
 from modules.losses.overlap_transformer_loss import triplet_confidence_loss
 from tools.fileloader import load_files, load_xyz_rot, load_overlaps, read_image
 from tools.read_datasets import read_one_batch_overlaps
-from tools.utils import RunningAverage
+from tools.utils import RunningAverage, load_checkpoint
 from tools.utils_func import compute_top_k_keyframes
 
 
-def validation(model, top_n=5, metric='euclidean', method='overlap'):
+def validation(model, top_n=5, metric='euclidean', method='overlap', dist_thresh=5.0):
     """
     Validation function for the overlap transformer model.
     Args:
@@ -51,25 +53,17 @@ def validation(model, top_n=5, metric='euclidean', method='overlap'):
 
     poses_paths = os.path.join(poses_folder, valid_seq, 'poses.txt')
     poses_kf_paths = os.path.join(keyframes_folder, valid_seq, 'poses/poses_kf.txt')
-    valid_overlaps_path = os.path.join(overlaps_folder, valid_seq, 'overlaps.npz')
+    valid_overlaps_path = os.path.join(overlaps_folder, valid_seq, 'overlaps_full.npz')
     valid_overlaps_table_path = os.path.join(overlaps_table_folder, f'{valid_seq}.bin')
 
-    # # valid_scan_paths = load_files(os.path.join(valid_scans_folder, '512', valid_seq))
-    # # ground_truth_paths = os.path.join(ground_truth_folder, valid_seq, 'overlaps.npz')
-    # # ground_truth_overlaps = np.load(ground_truth_paths)['arr_0']
-    #
-    # # find the closest top_n keyframes for each scan
-    # poses_paths = os.path.join(poses_folder, valid_seq, 'poses.txt')
-    # poses_kf_paths = os.path.join(keyframes_folder, valid_seq, 'poses/poses_kf.txt')
-    # img_kf_paths = load_files(os.path.join(keyframes_folder, valid_seq, 'png_files/512'))
-
-    device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
-
+    # load files
     xyz, _ = load_xyz_rot(poses_paths)
     xyz_kf, _ = load_xyz_rot(poses_kf_paths)
     img_paths = load_files(valid_img_folder)
     img_kf_paths = load_files(valid_img_kf_folder)
     overlaps = load_overlaps(valid_overlaps_path)
+
+    device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
     assert metric == 'euclidean' or metric == 'cosine', "Unknown metric! Must be 'euclidean' or 'cosine'!"
     assert method == 'euclidean' or method == 'overlap', "Unknown method! Must be 'euclidean' or 'overlap'!"
@@ -150,8 +144,18 @@ def validation(model, top_n=5, metric='euclidean', method='overlap'):
 
             # check if any of the current frame and the predicted keyframes is within the distance threshold
             dists = np.linalg.norm(xyz_kf[top_n_kf_prediction, :] - xyz[i, :], axis=1)
-            if np.any(dists < 5.0):
+            if np.any(dists < dist_thresh):
                 num_pos_pred_within_dist_threshold += 1
+
+        # # plot view
+        # for i in range(num_scans):
+        #     plt.clf()
+        #     plt.scatter(xyz[:, 0], xyz[:, 1], color='blue')
+        #     plt.scatter(xyz_kf[:, 0], xyz_kf[:, 1], color='violet')
+        #     plt.scatter(xyz[i, 0], xyz[i, 1], color='gold')
+        #     plt.scatter(xyz_kf[top_n_keyframes_pred[i], 0], xyz_kf[top_n_keyframes_pred[i], 1], color='green')
+        #     plt.show(block=False)
+        #     plt.pause(0.01)
 
         # calculate the average loss and recall
         avg_loss = loss_avg()
@@ -161,6 +165,12 @@ def validation(model, top_n=5, metric='euclidean', method='overlap'):
 
 
 if __name__ == '__main__':
+    weights_path = '/media/vectr/vectr3/Dataset/overlap_transformer/weights/weights_06_19/best.pth.tar'
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
-    model = OverlapTransformer32(height=32, width=900, channels=1, use_transformer=True).to(device)
-    validation(model)
+    model = OverlapTransformer32(height=32, width=512, channels=1, use_transformer=True).to(device)
+    load_checkpoint(weights_path, model)
+    l, r, rd = validation(model, metric='cosine', method='overlap')
+    print(f'loss: {l}')
+    print(f'recall: {r}')
+    print(f'recall_within_dist_threshold: {rd}')
+    # cosine has lower recall than euclidean, but margin is harder, not sure which one take the control.

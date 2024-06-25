@@ -112,7 +112,7 @@ def load_overlaps(file_path):
         overlaps = np.load(full_path, allow_pickle=True).astype(np.float32)
         overlaps = overlaps.reshape(-1, int(np.sqrt(len(overlaps))))
     elif ext == '.npz':
-        overlaps = np.load(full_path, allow_pickle=True)['arr_0'].astype(np.float32)    # rectangular matrix (n, 405)
+        overlaps = np.load(full_path, allow_pickle=True)['overlaps']   # rectangular matrix (n, 405)
     else:
         raise TypeError(f'Overlaps file {full_path} cannot be read!')
 
