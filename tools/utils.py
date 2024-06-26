@@ -93,7 +93,7 @@ def save_checkpoint(state, is_best, checkpoint):
     if is_best:
         print(f'Saving best model...')
         shutil.copyfile(file_path, os.path.join(checkpoint, 'best.pth.tar'))
-        print('Saved the best model!\n')
+        print('Saved the best model!\n`')
 
 
 def load_checkpoint(checkpoint, model, optimizer=None):

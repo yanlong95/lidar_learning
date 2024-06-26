@@ -136,7 +136,7 @@ class trainHandler():
 
             # validate model
             with torch.no_grad():
-                loss_valid, topn_rate, topn_rate_dist = validation(self.model, top_n=5)
+                loss_valid, topn_rate, topn_rate_dist = validation(self.model, top_n=5, metric=self.metric, method='overlap')
                 writer1.add_scalar("topn_rate", topn_rate, global_step=epoch)
                 writer1.add_scalar("valid_losses", loss_valid, global_step=epoch)
                 writer1.add_scalar("topn_rate_dist", topn_rate_dist, global_step=epoch)
@@ -194,5 +194,5 @@ if __name__ == '__main__':
             training_seqs: sequences number for training (alone the lines of OverlapNet).
     """
     train_handler = trainHandler(params=parameters, img_folder=train_img_folder, overlaps_folder=train_overlaps_paths,
-                                 weights_folder=weights_folder, resume=False)
+                                 weights_folder=weights_folder, resume=True)
     train_handler.train_eval()

@@ -10,7 +10,6 @@ import numpy as np
 from scipy.spatial import Voronoi, voronoi_plot_2d, Delaunay, transform
 from modules.overlap_transformer import OverlapTransformer32
 from tools.fileloader import load_files, load_xyz_rot, read_image
-from tools.utils_func import compute_top_k_keyframes
 import faiss
 import yaml
 import tqdm
