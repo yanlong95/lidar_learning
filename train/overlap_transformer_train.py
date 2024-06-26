@@ -44,7 +44,7 @@ class trainHandler():
         self.model = OverlapTransformer32(width=self.width, channels=self.channels,
                                           use_transformer=self.use_transformer).to(self.device)
         self.optimizer = torch.optim.Adam(self.model.parameters(), self.learning_rate)
-        self.scheduler = torch.optim.lr_scheduler.StepLR(self.optimizer, step_size=20, gamma=0.3)
+        self.scheduler = torch.optim.lr_scheduler.StepLR(self.optimizer, step_size=10, gamma=0.3)
 
         # load directories
         self.img_folder = img_folder                    # images path
@@ -115,7 +115,7 @@ class trainHandler():
             train_start_str = f"Resuming from {self.restore_path}."
 
         else:
-            start_epoch = 0
+            start_epoch = 1
             best_val = 0.0
             train_start_str = "Training From Scratch."
 
@@ -194,5 +194,5 @@ if __name__ == '__main__':
             training_seqs: sequences number for training (alone the lines of OverlapNet).
     """
     train_handler = trainHandler(params=parameters, img_folder=train_img_folder, overlaps_folder=train_overlaps_paths,
-                                 weights_folder=weights_folder, resume=True)
+                                 weights_folder=weights_folder, resume=False)
     train_handler.train_eval()

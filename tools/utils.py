@@ -95,6 +95,10 @@ def save_checkpoint(state, is_best, checkpoint):
         shutil.copyfile(file_path, os.path.join(checkpoint, 'best.pth.tar'))
         print('Saved the best model!\n`')
 
+    if state['epoch'] % 5 == 0:
+        shutil.copyfile(file_path, os.path.join(checkpoint, f"epoch_{state['epoch']}.pth.tar"))
+        print('Saved model!\n`')
+
 
 def load_checkpoint(checkpoint, model, optimizer=None):
     """

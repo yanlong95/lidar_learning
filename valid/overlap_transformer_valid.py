@@ -131,7 +131,7 @@ def validation(model, top_n=5, metric='euclidean', method='overlap', dist_thresh
         _, top_n_keyframes_pred = index_kf.search(descriptors, top_n)
 
         # calculate the closest keyframe based on the distances or overlap values (top 1 ground truth)
-        top_n_keyframes = compute_top_k_keyframes(xyz, xyz_kf, overlaps_table, top_k=1, metric=method)
+        top_n_keyframes = compute_top_k_keyframes(xyz, xyz_kf, overlaps_table, top_k=1, method=method)
 
         num_pos_pred = 0
         num_pos_pred_within_dist_threshold = 0

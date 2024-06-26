@@ -198,7 +198,7 @@ class testHandler():
             np.save(os.path.join(self.descriptors_folder, 'descriptors_kf'), descriptors_kf)
 
         # compute the closest keyframe based on the distances or overlap values (top 1 ground truth)
-        top_n_keyframes = compute_top_k_keyframes(xyz, xyz_kf, overlaps_table, top_k=1, metric=self.method)
+        top_n_keyframes = compute_top_k_keyframes(xyz, xyz_kf, overlaps_table, top_k=1, method=self.method)
 
         # compute the top_n keyframes prediction
         top_n_keyframes_pred = self.compute_predictions(descriptors, descriptors_kf)

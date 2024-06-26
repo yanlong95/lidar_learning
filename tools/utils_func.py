@@ -4,7 +4,7 @@ import faiss
 from tools.fileloader import load_xyz_rot, load_overlaps
 
 
-def compute_top_k_keyframes(frames_poses, keyframes_poses, overlaps, top_k=5, metric='euclidean'):
+def compute_top_k_keyframes(frames_poses, keyframes_poses, overlaps, top_k=5, method='euclidean'):
     """
     Select the top_k keyframes for each scan (ground truth).
 
@@ -13,7 +13,7 @@ def compute_top_k_keyframes(frames_poses, keyframes_poses, overlaps, top_k=5, me
         keyframes_poses: (numpy.array) positions of all keyframes in shape (n, 3).
         overlaps: (numpy.array) overlap table in shape (n, n) element (i, j) is the overlap value between scan i and j.
         top_k: (int) number of top selection.
-        metric: (string) selection metric (euclidean or overlap).
+        method: (string) selection metric (euclidean or overlap).
     Returns:
         indices: (np.array) the indices of selected top_k keyframes indices in shape (n, top_k).
     """
@@ -22,12 +22,12 @@ def compute_top_k_keyframes(frames_poses, keyframes_poses, overlaps, top_k=5, me
     # xyz_kf, _ = load_xyz_rot(keyframes_poses_path)
     # overlaps = load_overlaps(overlaps_path)    # a n*n matrix, element (i, j) is the overlap value between scan i and j
 
-    if metric == 'euclidean':
+    if method == 'euclidean':
         # search the closest top_k keyframes based on the distance in Euclidean space
         index = faiss.IndexFlatL2(3)
         index.add(keyframes_poses)
         _, indices = index.search(frames_poses, top_k)
-    elif metric == 'overlap':
+    elif method == 'overlap':
         # search the top_k keyframes base on the overlap values
         index = faiss.IndexFlat(3)
         index.add(frames_poses)
@@ -109,4 +109,4 @@ if __name__ == '__main__':
     xyz_kf, _ = load_xyz_rot(keyframes_poses_path)
     overlaps = load_overlaps(overlaps_path)    # a n*n matrix, element (i, j) is the overlap value between scan i and j
 
-    indices = compute_top_k_keyframes(frames_poses_path, keyframes_poses_path, overlaps_path, metric='overlap')
+    indices = compute_top_k_keyframes(frames_poses_path, keyframes_poses_path, overlaps_path, method='overlap')
