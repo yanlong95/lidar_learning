@@ -4,7 +4,7 @@ import faiss
 from tools.fileloader import load_xyz_rot, load_overlaps
 
 
-def compute_top_k_keyframes(frames_poses, keyframes_poses, overlaps, top_k=5, method='euclidean'):
+def compute_top_k_keyframes(frames_poses, keyframes_poses, overlaps=None, top_k=5, method='euclidean'):
     """
     Select the top_k keyframes for each scan (ground truth).
 
@@ -22,7 +22,7 @@ def compute_top_k_keyframes(frames_poses, keyframes_poses, overlaps, top_k=5, me
     # xyz_kf, _ = load_xyz_rot(keyframes_poses_path)
     # overlaps = load_overlaps(overlaps_path)    # a n*n matrix, element (i, j) is the overlap value between scan i and j
 
-    if method == 'euclidean':
+    if method == 'euclidean' or overlaps is None:
         # search the closest top_k keyframes based on the distance in Euclidean space
         index = faiss.IndexFlatL2(3)
         index.add(keyframes_poses)

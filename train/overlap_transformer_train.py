@@ -105,11 +105,6 @@ class trainHandler():
         epochs = self.num_epochs
 
         if self.resume:
-            # checkpoint = torch.load(self.restore_path)
-            # start_epoch = checkpoint['epoch'] + 1
-            # self.model.load_state_dict(checkpoint['state_dict'])
-            # self.optimizer.load_state_dict(checkpoint['optimizer'])
-            # best_val = checkpoint['best_val']
             epoch, best_val = load_checkpoint(self.restore_path, self.model, self.optimizer)
             start_epoch = epoch + 1
             train_start_str = f"Resuming from {self.restore_path}."

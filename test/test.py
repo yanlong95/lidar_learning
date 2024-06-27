@@ -13,9 +13,9 @@ from tools.utils_func import compute_top_k_keyframes
 
 
 class testHandler():
-    def __init__(self, params, img_folder, img_kf_folder, overlaps_table_path, frames_poses_path, keyframes_poses_path,
-                 weights_path, top_n=5, skip=1, method='overlap', load_descriptors=False, descriptors_folder=None,
-                 predictions_folder=None):
+    def __init__(self, params, img_folder, img_kf_folder, frames_poses_path, keyframes_poses_path, weights_path,
+                 overlaps_table_path=None, top_n=5, skip=1, method='overlap', load_descriptors=False,
+                 descriptors_folder=None, predictions_folder=None):
         # parameters
         self.params = params
         self.height = params['learning']['height']
@@ -182,7 +182,8 @@ class testHandler():
         img_kf_paths = load_files(self.img_kf_folder)
         xyz, _ = load_xyz_rot(self.frames_poses_path)
         xyz_kf, _ = load_xyz_rot(self.keyframes_poses_path)
-        overlaps_table = load_overlaps(self.overlaps_table_path)
+        if self.overlaps_table_path is not None:
+            overlaps_table = load_overlaps(self.overlaps_table_path)
 
         # load model
         checkpoint = torch.load(self.weights_path)
@@ -200,13 +201,17 @@ class testHandler():
             descriptors_kf = self.compute_descriptors(img_kf_paths, self.model)
 
             # save descriptors and keyframes descriptors
-            if not os.path.exists(self.descriptors_folder):
-                os.makedirs(self.descriptors_folder)
-            np.save(os.path.join(self.descriptors_folder, 'descriptors'), descriptors)
-            np.save(os.path.join(self.descriptors_folder, 'descriptors_kf'), descriptors_kf)
+            if self.descriptors_folder is not None:
+                if not os.path.exists(self.descriptors_folder):
+                    os.makedirs(self.descriptors_folder)
+                np.save(os.path.join(self.descriptors_folder, 'descriptors'), descriptors)
+                np.save(os.path.join(self.descriptors_folder, 'descriptors_kf'), descriptors_kf)
 
         # compute the closest keyframe based on the distances or overlap values (top 1 ground truth)
-        top_n_keyframes = compute_top_k_keyframes(xyz, xyz_kf, overlaps_table, top_k=1, method=self.method)
+        if self.overlaps_table_path is not None:
+            top_n_keyframes = compute_top_k_keyframes(xyz, xyz_kf, overlaps_table, top_k=1, method=self.method)
+        else:
+            top_n_keyframes = compute_top_k_keyframes(xyz, xyz_kf, top_k=1, method=self.method)
 
         # compute the top_n keyframes prediction
         top_n_keyframes_pred = self.compute_predictions(descriptors, descriptors_kf)
@@ -255,8 +260,21 @@ if __name__ == '__main__':
     test_overlaps_table_path = os.path.join(overlaps_table_folder, f'{test_seq}.bin')
     test_descriptors_folder = os.path.join(descriptors_folder, test_seq)
 
+
+    # test_img_folder = '/media/vectr/vectr3/Dataset/arl/png_files/out-and-back-3/512'
+    # test_img_kf_folder = '/media/vectr/vectr3/Dataset/arl/keyframes/out-and-back-3/png_files/512'
+    # test_poses_folder = '/media/vectr/vectr3/Dataset/arl/poses/out-and-back-3/poses.txt'
+    # test_poses_kf_folder = '/media/vectr/vectr3/Dataset/arl/keyframes/out-and-back-3/poses/poses_kf.txt'
+    # weights_path = '/media/vectr/vectr3/Dataset/overlap_transformer/weights/weights_06_26'
+    # test_weights_path = os.path.join(weights_path, 'best.pth.tar')
+
     # ===============================================================================
-    tester = testHandler(params, test_img_folder, test_img_kf_folder, test_overlaps_table_path, test_poses_folder,
-                         test_poses_kf_folder, test_weights_path, top_n=5, skip=1, method='euclidean',
+    tester = testHandler(params, test_img_folder, test_img_kf_folder, test_poses_folder, test_poses_kf_folder,
+                         test_weights_path, overlaps_table_path=test_overlaps_table_path, top_n=5, skip=1, method='euclidean',
                          load_descriptors=False, descriptors_folder=test_descriptors_folder, predictions_folder=None)
     tester.test()
+
+    # tester = testHandler(params, test_img_folder, test_img_kf_folder, test_poses_folder, test_poses_kf_folder,
+    #                      test_weights_path, overlaps_table_path=None, top_n=5, skip=1, method='euclidean',
+    #                      load_descriptors=False, descriptors_folder=None, predictions_folder=None)
+    # tester.test()
