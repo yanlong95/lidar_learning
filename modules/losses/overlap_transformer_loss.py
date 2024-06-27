@@ -170,6 +170,8 @@ def triplet_confidence_loss(q_vec, pos_vecs, neg_vecs, pos_overlaps, margin, alp
     Output:
         (torch.Tensor) the triplet loss.
     """
+    assert metric == 'euclidean' or metric == 'cosine', "metric must be 'euclidean' or 'cosine'."
+
     tri_loss = triplet_loss(q_vec, pos_vecs, neg_vecs, margin, use_min, lazy, ignore_zero_loss, metric=metric)
     sim_loss = overlap_loss(q_vec, pos_vecs, pos_overlaps, metric=metric)
     loss = tri_loss + alpha * sim_loss

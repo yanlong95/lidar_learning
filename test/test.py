@@ -108,10 +108,18 @@ class testHandler():
             curr_descriptor = descriptors[i, :]
             top_n_keyframe = top_n_keyframes[i, :]
             top_n_descriptors = descriptors_kf[top_n_keyframe, :]
-            if use_min:
-                top_n_best_dist = np.min(np.linalg.norm(curr_descriptor - top_n_descriptors, axis=1))
+
+            if self.metric == 'euclidean':
+                diff = np.linalg.norm(curr_descriptor - top_n_descriptors, axis=1)
             else:
-                top_n_best_dist = np.mean(np.linalg.norm(curr_descriptor - top_n_descriptors, axis=1))
+                cosine = np.sum(curr_descriptor * top_n_descriptors, axis=1)
+                cosine = np.clip(cosine, -1, 1)
+                diff = np.arccos(cosine)
+
+            if use_min:
+                top_n_best_dist = np.min(diff)
+            else:
+                top_n_best_dist = np.mean(diff)
             confidence_scores[i] = top_n_best_dist
 
         confidence_scores /= np.max(confidence_scores)
@@ -242,12 +250,13 @@ if __name__ == '__main__':
     test_img_kf_folder = os.path.join(keyframes_folder, test_seq, 'png_files/512')
     test_poses_folder = os.path.join(poses_folder, test_seq, 'poses.txt')
     test_poses_kf_folder = os.path.join(keyframes_folder, test_seq, 'poses/poses_kf.txt')
+    weights_path = '/media/vectr/vectr3/Dataset/overlap_transformer/weights/weights_06_26'
     test_weights_path = os.path.join(weights_path, 'best.pth.tar')
     test_overlaps_table_path = os.path.join(overlaps_table_folder, f'{test_seq}.bin')
     test_descriptors_folder = os.path.join(descriptors_folder, test_seq)
 
     # ===============================================================================
     tester = testHandler(params, test_img_folder, test_img_kf_folder, test_overlaps_table_path, test_poses_folder,
-                         test_poses_kf_folder, test_weights_path, top_n=5, skip=1, method='overlap',
+                         test_poses_kf_folder, test_weights_path, top_n=5, skip=1, method='euclidean',
                          load_descriptors=False, descriptors_folder=test_descriptors_folder, predictions_folder=None)
     tester.test()
