@@ -14,7 +14,7 @@ from tools.utils import RunningAverage, load_checkpoint
 from tools.utils_func import compute_top_k_keyframes
 
 
-def validation(model, top_n=5, metric='euclidean', method='overlap', dist_thresh=5.0):
+def validation(model, top_n=5, metric='euclidean', method='overlap', dist_thresh=5.0, seq=0):
     """
     Validation function for the overlap transformer model.
     Args:
@@ -39,7 +39,7 @@ def validation(model, top_n=5, metric='euclidean', method='overlap', dist_thresh
     poses_folder = config['data_root']['poses']
     keyframes_folder = config['data_root']['keyframes']
 
-    valid_seq = config['seqs']['valid'][0]
+    valid_seq = config['seqs']['valid'][seq]
     channels = params['learning']['channels']
     height = params['learning']['height']
     width = params['learning']['width']

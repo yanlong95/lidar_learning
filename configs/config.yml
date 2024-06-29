@@ -9,7 +9,7 @@ data_root:
   poses: "/media/vectr/vectr3/Dataset/overlap_transformer/poses"
   test: "/media/vectr/vectr3/Dataset/overlap_transformer/test"
 #  weights: "/media/vectr/vectr3/Dataset/overlap_transformer/weights/weights_06_10"
-  weights: "/media/vectr/vectr3/Dataset/overlap_transformer/weights/weights_06_26"
+  weights: "/media/vectr/vectr3/Dataset/overlap_transformer/weights/weights_06_28"
   predictions: "/media/vectr/vectr3/Dataset/overlap_transformer/predictions"
 
 seqs:
@@ -18,7 +18,7 @@ seqs:
   train: ["bomb_shelter", "botanical_garden", "bruin_plaza", "court_of_sciences", "dickson_court", "kerckhoff", "luskin"
           ]
 #  train: [ "bomb_shelter"]
-  valid: ["geo_loop"]
+  valid: ["geo_loop", "royce_hall", "sculpture_garden"]
 #  test: ["geo_loop", "royce_hall", "sculpture_garden"]
   test: ["bomb_shelter", "botanical_garden", "bruin_plaza", "court_of_sciences", "dickson_court", "geo_loop", "luskin",
          "kerckhoff", "royce_hall", "sculpture_garden"]

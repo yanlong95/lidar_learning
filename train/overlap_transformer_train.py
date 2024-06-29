@@ -136,6 +136,11 @@ class trainHandler():
                 writer1.add_scalar("valid_losses", loss_valid, global_step=epoch)
                 writer1.add_scalar("topn_rate_dist", topn_rate_dist, global_step=epoch)
 
+                loss_valid_2, topn_rate_2, topn_rate_dist_2 = validation(self.model, top_n=5, metric=self.metric, method='overlap', seq=1)
+                writer1.add_scalar("topn_rate_2", topn_rate_2, global_step=epoch)
+                writer1.add_scalar("valid_losses_2", loss_valid_2, global_step=epoch)
+                writer1.add_scalar("topn_rate_dist_2", topn_rate_dist_2, global_step=epoch)
+
             # check if current model has the best validation rate
             if topn_rate >= best_val:
                 best_val = topn_rate
