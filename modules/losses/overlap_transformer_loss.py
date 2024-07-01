@@ -74,6 +74,7 @@ def overlap_loss(q_vec, pos_vecs, overlaps, metric='euclidean'):
     """
     First calculate the similarity between two batch of vectors.
     Then calculate the mean squared error between the similarity and overlaps.
+    !!! Note, the loss make the margin very tight. Hard to train. !!!
 
     Args:
         q_vec: (torch.Tensor) scan1 vectors in shape (1, vec_size).
@@ -85,18 +86,28 @@ def overlap_loss(q_vec, pos_vecs, overlaps, metric='euclidean'):
     """
     similarity = compute_distance(q_vec, pos_vecs, axis=1, metric=metric)
 
-    if metric == 'euclidean':
-        similarity = F.normalize(similarity, dim=0) * torch.pi / 2   # normalized between 0 - pi/2
-        similarity = torch.cos(similarity)                           # between 1 - 0
+    # if metric == 'euclidean':
+    #     similarity = F.normalize(similarity, dim=0) * torch.pi / 2   # normalized between 0 - pi/2
+    #     similarity = torch.cos(similarity)                           # between 1 - 0
+    #
+    # if metric == 'cosine':
+    #     # similarity = 1.0 - similarity / 2.0                          # between 1 - 0
+    #     similarity = torch.clamp(1.0 - similarity, min=-1.0, max=1.0)
+    #     similarity = 1.0 - torch.arccos(similarity) / torch.pi               # between 1 - 0
+    #
+    # if len(overlaps.shape) == 1:
+    #     overlaps = overlaps.unsqueeze(1)
+    #
+    # # loss = F.mse_loss(diff, overlaps)
+    # loss = ((similarity - overlaps) ** 2).sum()
 
     if metric == 'cosine':
-        similarity = 1.0 - similarity / 2.0                          # between 1 - 0
+        similarity = torch.clamp(similarity, min=0.0, max=2.0)              # avoid negative numbers
 
     if len(overlaps.shape) == 1:
         overlaps = overlaps.unsqueeze(1)
 
-    # loss = F.mse_loss(diff, overlaps)
-    loss = ((similarity - overlaps) ** 2).sum()
+    loss = (similarity * (overlaps ** 1)).sum()                             # higher overlap, higher weight
     return loss
 
 
@@ -136,7 +147,7 @@ def triplet_loss(q_vec, pos_vecs, neg_vecs, margin, use_min=False, lazy=False, i
 
     # lazy triplet use max to find the closest (smallest) negative pair
     if lazy:
-        loss = loss.max(1)[0]
+        loss = loss.max(0)[0]
     else:
         loss = loss.sum(0)
 

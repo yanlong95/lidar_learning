@@ -132,14 +132,28 @@ class trainHandler():
             # validate model
             with torch.no_grad():
                 loss_valid, topn_rate, topn_rate_dist = validation(self.model, top_n=5, metric=self.metric, method='overlap')
-                writer1.add_scalar("topn_rate", topn_rate, global_step=epoch)
-                writer1.add_scalar("valid_losses", loss_valid, global_step=epoch)
-                writer1.add_scalar("topn_rate_dist", topn_rate_dist, global_step=epoch)
-
                 loss_valid_2, topn_rate_2, topn_rate_dist_2 = validation(self.model, top_n=5, metric=self.metric, method='overlap', seq=1)
-                writer1.add_scalar("topn_rate_2", topn_rate_2, global_step=epoch)
-                writer1.add_scalar("valid_losses_2", loss_valid_2, global_step=epoch)
-                writer1.add_scalar("topn_rate_dist_2", topn_rate_dist_2, global_step=epoch)
+                loss_valid_3, topn_rate_3, topn_rate_dist_3 = validation(self.model, top_n=5, metric=self.metric, method='overlap', seq=2)
+
+                # writer1.add_scalar("topn_rate", topn_rate, global_step=epoch)
+                # writer1.add_scalar("valid_losses", loss_valid, global_step=epoch)
+                # writer1.add_scalar("topn_rate_dist", topn_rate_dist, global_step=epoch)
+                #
+                # writer1.add_scalar("topn_rate_2", topn_rate_2, global_step=epoch)
+                # writer1.add_scalar("valid_losses_2", loss_valid_2, global_step=epoch)
+                # writer1.add_scalar("topn_rate_dist_2", topn_rate_dist_2, global_step=epoch)
+                #
+                # writer1.add_scalar("topn_rate_3", topn_rate_3, global_step=epoch)
+                # writer1.add_scalar("valid_losses_3", loss_valid_3, global_step=epoch)
+                # writer1.add_scalar("topn_rate_dist_3", topn_rate_dist_3, global_step=epoch)
+
+                writer1.add_scalars("topn_rate", {'geo': topn_rate, 'royce': topn_rate_2,
+                                                  'sculpture': topn_rate_3}, global_step=epoch)
+                writer1.add_scalars("topn_rate_dist", {'geo': topn_rate_dist,
+                                                       'royce': topn_rate_dist_2, 'sculpture': topn_rate_dist_3},
+                                    global_step=epoch)
+                writer1.add_scalars("valid_loss", {'geo': loss_valid, 'royce': loss_valid_2,
+                                                   'sculpture': loss_valid_3}, global_step=epoch)
 
             # check if current model has the best validation rate
             if topn_rate >= best_val:
