@@ -8,8 +8,7 @@ data_root:
   png_files: "/media/vectr/vectr3/Dataset/overlap_transformer/png_files/512"
   poses: "/media/vectr/vectr3/Dataset/overlap_transformer/poses"
   test: "/media/vectr/vectr3/Dataset/overlap_transformer/test"
-#  weights: "/media/vectr/vectr3/Dataset/overlap_transformer/weights/weights_06_10"
-  weights: "/media/vectr/vectr3/Dataset/overlap_transformer/weights/weights_07_02"
+  weights: "/media/vectr/vectr3/Dataset/overlap_transformer/weights/weights_07_03"
   predictions: "/media/vectr/vectr3/Dataset/overlap_transformer/predictions"
 
 seqs:

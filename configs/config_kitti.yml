@@ -1,0 +1,6 @@
+raw_data:
+  sequences: "/media/vectr/T7/Datasets/public_datasets/kitti/dataset/sequences"
+
+data_root:
+  png_files: "/media/vectr/T7/Datasets/public_datasets/kitti/dataset/sequences"
+

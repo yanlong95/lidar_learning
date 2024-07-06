@@ -35,7 +35,7 @@ def compute_submap_keyframes(frames_poses_path, keyframes_poses_path, overlaps_p
         _, indices = index.search(xyz, top_k)
     elif metric == 'overlap':
         # search the top_k keyframes base on the overlap values
-        index = faiss.IndexFlat(3)
+        index = faiss.IndexFlatIP(3)
         index.add(xyz)
         _, indices_kf = index.search(xyz_kf, 1)
         overlaps_kf = overlaps[:, indices_kf.squeeze()]             # each row is the overlaps between curr and keyframe

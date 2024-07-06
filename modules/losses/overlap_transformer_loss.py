@@ -167,6 +167,8 @@ def triplet_confidence_loss(q_vec, pos_vecs, neg_vecs, pos_overlaps, margin, alp
     Calculate the (lazy) triplet losses combine with a confidence loss function to minimize the overlaps and similarity
     between query and positive vectors.
 
+    TODO: maybe add trainable parameters instead of a fixed margin as some pairs are harder to separate than the  others
+
     Args:
         q_vec: (torch.Tensor) the query vector in shape (1, q_size).
         pos_vecs: (torch.Tensor) the query positive vector set in shape (num_pos, q_size).

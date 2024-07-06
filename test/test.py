@@ -250,12 +250,12 @@ if __name__ == '__main__':
     weights_path = config['data_root']['weights']
     descriptors_folder = config['data_root']['descriptors']
 
-    test_seq = config['seqs']['test'][2]
+    test_seq = config['seqs']['test'][9]
     test_img_folder = os.path.join(img_folder, test_seq)
     test_img_kf_folder = os.path.join(keyframes_folder, test_seq, 'png_files/512')
     test_poses_folder = os.path.join(poses_folder, test_seq, 'poses.txt')
     test_poses_kf_folder = os.path.join(keyframes_folder, test_seq, 'poses/poses_kf.txt')
-    weights_path = '/media/vectr/vectr3/Dataset/overlap_transformer/weights/weights_07_02'
+    weights_path = '/media/vectr/vectr3/Dataset/overlap_transformer/weights/weights_07_01'
     test_weights_path = os.path.join(weights_path, 'best.pth.tar')
     test_overlaps_table_path = os.path.join(overlaps_table_folder, f'{test_seq}.bin')
     test_descriptors_folder = os.path.join(descriptors_folder, test_seq)
@@ -274,7 +274,9 @@ if __name__ == '__main__':
                          load_descriptors=False, descriptors_folder=test_descriptors_folder, predictions_folder=None)
     tester.test()
 
-    # tester = testHandler(params, test_img_folder, test_img_kf_folder, test_poses_folder, test_poses_kf_folder,
+    # tester = testHandler(params, test_img_folder, test_img_kf_folder, test_poses_folder, test_poses_kf_folder,geo:
+    # royce:
+    # sculpture:
     #                      test_weights_path, overlaps_table_path=None, top_n=5, skip=1, method='euclidean',
     #                      load_descriptors=False, descriptors_folder=None, predictions_folder=None)
     # tester.test()

@@ -27,7 +27,7 @@
   "descriptor_size": 256
   "use_transformer": true
 
-  "margin1": 0.01       # 0-2 in cosine, 0-4 in euclidean, 0.5 euclidean = (0.15~) 0.25 cosine, 1.0 euclidean = 0.5 cosine, 2.0 euclidean = 1.0 cosine
+  "margin1": 0.02       # 0-2 in cosine, 0-4 in euclidean, 0.5 euclidean = (0.15~) 0.25 cosine, 1.0 euclidean = 0.5 cosine, 2.0 euclidean = 1.0 cosine
   "alpha": 0.0
   "metric": "cosine"    # cosine or euclidean
   "dist_thresh": 5.0    # threshold for euclidean distance test

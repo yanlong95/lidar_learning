@@ -17,7 +17,7 @@ def add_2d_scatter(ax, points, points_color, title=None, alpha=0.5):
 
 
 if __name__ == '__main__':
-    seq = 'bruin_plaza'
+    seq = 'sculpture_garden'
     config = yaml.safe_load(open('/home/vectr/PycharmProjects/lidar_learning/configs/config.yml'))
     descriptors_path = os.path.join(config['data_root']['descriptors'], f'{seq}/descriptors.npy')
     descriptors_kf_path = os.path.join(config['data_root']['descriptors'], f'{seq}/descriptors_kf.npy')
