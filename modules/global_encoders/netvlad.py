@@ -65,7 +65,6 @@ class NetVLADLoupe(nn.Module):
                 D dimensional descriptors extracted at H * W spatial locations.
                 Here H = 1, W = max_samples, D = feature_size.
         """
-
         x = x.transpose(1, 3).contiguous()
         x = x.view(-1, self.max_samples, self.feature_size)
 

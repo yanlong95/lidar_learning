@@ -11,21 +11,16 @@ import matplotlib.pyplot as plt
 from tools.fileloader import load_xyz_rot, load_overlaps
 
 
-def compute_keyframes_indices(frame_poses_path, keyframes_poses_path):
+def compute_keyframes_indices(xyz, xyz_kf):
     """
     Compute the indices of keyframes.
 
     Args:
-        frame_poses_path: (string) path of the folder contains the positions of each frame.
-        keyframes_poses_path: (string) path of the folder contains the positions of each keyframes.
+        xyz: (numpy.array) frames positions in shape (n, 3).
+        xyz_kf: (numpy.array) keyframes positions in shape (m, 3).
     Returns:
         indices_kf: (np.array) the indices of keyframes in shape (n).
     """
-    # load frames and keyframes positions
-    xyz, _ = load_xyz_rot(frame_poses_path)
-    xyz_kf, _ = load_xyz_rot(keyframes_poses_path)
-
-    # search the closest keyframes
     index = faiss.IndexFlatL2(3)
     index.add(xyz)
     _, indices_kf = index.search(xyz_kf, 1)
@@ -33,14 +28,14 @@ def compute_keyframes_indices(frame_poses_path, keyframes_poses_path):
     return indices_kf
 
 
-def compute_submap_keyframes(frames_poses_path, keyframes_poses_path, overlaps_path, top_k=5, is_anchor=False,
-                             overlap_dist_thresh=15.0, metric='euclidean'):
+def compute_submap_keyframes(xyz, xyz_kf, overlaps, top_k=5, is_anchor=False, overlap_dist_thresh=15.0,
+                             metric='euclidean'):
     """
     Select the top_k keyframes to create a submap for each scan.
 
     Args:
-        frames_poses_path: (string) path of folder contains the positions of each frame
-        keyframes_poses_path: (string) path of the folder contains the positions of each keyframes
+        xyz: (numpy.array) frames positions in shape (n, 3).
+        xyz_kf: (numpy.array) keyframes positions in shape (m, 3).
         overlaps_path: (string) path of the folder contains the overlap table
         top_k: (int) number of top selection.
         is_anchor: (bool) whether to compute the submap for anchor or not. Anchor does not know the keyframes after
@@ -49,11 +44,6 @@ def compute_submap_keyframes(frames_poses_path, keyframes_poses_path, overlaps_p
     Returns:
         indices: (np.array) the indices of selected top_k keyframes indices in shape (n, top_k).
     """
-    # load frames and keyframes positions
-    xyz, _ = load_xyz_rot(frames_poses_path)
-    xyz_kf, _ = load_xyz_rot(keyframes_poses_path)
-    overlaps = load_overlaps(overlaps_path)
-
     if metric == 'euclidean':
         # search the closest top_k keyframes
         index_kf = faiss.IndexFlatL2(3)
@@ -62,7 +52,7 @@ def compute_submap_keyframes(frames_poses_path, keyframes_poses_path, overlaps_p
             _, indices = index_kf.search(xyz, top_k)
         else:
             # cannot choose keyframes before current index
-            indices_kf = compute_keyframes_indices(frames_poses_path, keyframes_poses_path)
+            indices_kf = compute_keyframes_indices(xyz, xyz_kf)
             _, indices_all = index_kf.search(xyz, len(xyz_kf))            # rank keyframes for each frame (in kf order)
             indices = np.zeros((len(overlaps), top_k), dtype=int)
             for i in range(len(xyz)):
@@ -76,7 +66,7 @@ def compute_submap_keyframes(frames_poses_path, keyframes_poses_path, overlaps_p
 
     elif metric == 'overlap':
         # search the top_k keyframes base on the overlap values
-        indices_kf = compute_keyframes_indices(frames_poses_path, keyframes_poses_path)
+        indices_kf = compute_keyframes_indices(xyz, xyz_kf)
         overlaps_kf = overlaps[:, indices_kf]             # each row is the overlaps between curr and keyframe
 
         # search the top_k keyframes for each frame
@@ -134,9 +124,10 @@ if __name__ == '__main__':
 
     xyz, _ = load_xyz_rot(frames_poses_path)
     xyz_kf, _ = load_xyz_rot(keyframes_poses_path)
-    indices_kf = compute_keyframes_indices(frames_poses_path, keyframes_poses_path)
-    indices = compute_submap_keyframes(frames_poses_path, keyframes_poses_path, overlaps_path, is_anchor=False,
-                                       overlap_dist_thresh=15.0, metric='overlap')
+    overlaps = load_overlaps(overlaps_path)
+    indices_kf = compute_keyframes_indices(xyz, xyz_kf)
+    indices = compute_submap_keyframes(xyz, xyz_kf, overlaps, is_anchor=False, overlap_dist_thresh=15.0,
+                                       metric='overlap')
 
     # for i in range(xyz.shape[0]):
     #     xyz_curr = xyz[i, :]
