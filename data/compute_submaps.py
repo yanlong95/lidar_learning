@@ -7,11 +7,34 @@ File to compute the submap for each scan. The submap is consisted with the k key
 import os
 import faiss
 import numpy as np
+import matplotlib.pyplot as plt
 from tools.fileloader import load_xyz_rot, load_overlaps
 
 
+def compute_keyframes_indices(frame_poses_path, keyframes_poses_path):
+    """
+    Compute the indices of keyframes.
+
+    Args:
+        frame_poses_path: (string) path of the folder contains the positions of each frame.
+        keyframes_poses_path: (string) path of the folder contains the positions of each keyframes.
+    Returns:
+        indices_kf: (np.array) the indices of keyframes in shape (n).
+    """
+    # load frames and keyframes positions
+    xyz, _ = load_xyz_rot(frame_poses_path)
+    xyz_kf, _ = load_xyz_rot(keyframes_poses_path)
+
+    # search the closest keyframes
+    index = faiss.IndexFlatL2(3)
+    index.add(xyz)
+    _, indices_kf = index.search(xyz_kf, 1)
+    indices_kf = indices_kf.squeeze()
+    return indices_kf
+
+
 def compute_submap_keyframes(frames_poses_path, keyframes_poses_path, overlaps_path, top_k=5, is_anchor=False,
-                             metric='euclidean'):
+                             overlap_dist_thresh=15.0, metric='euclidean'):
     """
     Select the top_k keyframes to create a submap for each scan.
 
@@ -39,11 +62,7 @@ def compute_submap_keyframes(frames_poses_path, keyframes_poses_path, overlaps_p
             _, indices = index_kf.search(xyz, top_k)
         else:
             # cannot choose keyframes before current index
-            index = faiss.IndexFlatL2(3)
-            index.add(xyz)
-            _, indices_kf = index.search(xyz_kf, 1)                    # find keyframes indices
-            indices_kf = indices_kf.squeeze()
-
+            indices_kf = compute_keyframes_indices(frames_poses_path, keyframes_poses_path)
             _, indices_all = index_kf.search(xyz, len(xyz_kf))            # rank keyframes for each frame (in kf order)
             indices = np.zeros((len(overlaps), top_k), dtype=int)
             for i in range(len(xyz)):
@@ -57,10 +76,7 @@ def compute_submap_keyframes(frames_poses_path, keyframes_poses_path, overlaps_p
 
     elif metric == 'overlap':
         # search the top_k keyframes base on the overlap values
-        index = faiss.IndexFlatL2(3)
-        index.add(xyz)
-        _, indices_kf = index.search(xyz_kf, 1)
-        indices_kf = indices_kf.squeeze()
+        indices_kf = compute_keyframes_indices(frames_poses_path, keyframes_poses_path)
         overlaps_kf = overlaps[:, indices_kf]             # each row is the overlaps between curr and keyframe
 
         # search the top_k keyframes for each frame
@@ -68,13 +84,36 @@ def compute_submap_keyframes(frames_poses_path, keyframes_poses_path, overlaps_p
 
         for i in range(len(overlaps)):
             rank_kf = overlaps_kf[i, :].argsort()[::-1]
+            xyz_curr = xyz[i, :]
             if not is_anchor:
-                indices[i, :] = rank_kf[:top_k]
+                # add minimum distance threshold
+                valid_count = 0
+                for j in range(len(xyz_kf)):
+                    xyz_kf_curr = xyz_kf[rank_kf[j], :]
+                    if np.linalg.norm(xyz_curr - xyz_kf_curr) <= overlap_dist_thresh:
+                        indices[i, valid_count] = rank_kf[j]
+                        valid_count += 1
+                    if valid_count >= top_k:
+                        break
+                if valid_count < top_k:
+                    raise "Overlap distance threshold is too small! Cannot find enough keyframes."
+                # indices[i, :] = rank_kf[:top_k]
             else:
                 # anchor cannot choose keyframes before current index
                 mask = indices_kf[rank_kf] <= i
                 if np.sum(mask) >= top_k:
-                    indices[i, :] = rank_kf[:top_k]
+                    # add minimum distance threshold
+                    valid_count = 0
+                    for j in range(len(xyz_kf)):
+                        xyz_kf_curr = xyz_kf[rank_kf[j], :]
+                        if np.linalg.norm(xyz_curr - xyz_kf_curr) <= overlap_dist_thresh:
+                            indices[i, valid_count] = rank_kf[j]
+                            valid_count += 1
+                        if valid_count >= top_k:
+                            break
+                    if valid_count < top_k:
+                        raise "Overlap distance threshold is too small! Cannot find enough keyframes."
+                    # indices[i, :] = rank_kf[:top_k]
                 else:
                     indices[i, :np.sum(mask)] = rank_kf[mask]
     else:
@@ -93,6 +132,20 @@ if __name__ == '__main__':
     keyframes_poses_path = os.path.join(root_folder, 'keyframes', seq, 'poses', 'poses_kf.txt')
     overlaps_path = os.path.join(root_folder, 'overlaps', f'{seq}.bin')
 
-    indices = compute_submap_keyframes(frames_poses_path, keyframes_poses_path, overlaps_path, is_anchor=True, metric='overlap')
+    xyz, _ = load_xyz_rot(frames_poses_path)
+    xyz_kf, _ = load_xyz_rot(keyframes_poses_path)
+    indices_kf = compute_keyframes_indices(frames_poses_path, keyframes_poses_path)
+    indices = compute_submap_keyframes(frames_poses_path, keyframes_poses_path, overlaps_path, is_anchor=False,
+                                       overlap_dist_thresh=15.0, metric='overlap')
 
-# TODO: check via plot
+    # for i in range(xyz.shape[0]):
+    #     xyz_curr = xyz[i, :]
+    #     xyz_curr_kf = xyz_kf[indices[i, :], :]
+    #
+    #     plt.clf()
+    #     plt.scatter(xyz[:, 0], xyz[:, 1])
+    #     plt.scatter(xyz_kf[:, 0], xyz_kf[:, 1], c='gold')
+    #     plt.scatter(xyz_curr_kf[:, 0], xyz_curr_kf[:, 1], c='red')
+    #     plt.scatter(xyz_curr[0], xyz_curr[1], c='violet')
+    #     plt.show()
+    #     plt.pause(0.01)
