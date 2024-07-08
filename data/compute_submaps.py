@@ -94,3 +94,5 @@ if __name__ == '__main__':
     overlaps_path = os.path.join(root_folder, 'overlaps', f'{seq}.bin')
 
     indices = compute_submap_keyframes(frames_poses_path, keyframes_poses_path, overlaps_path, is_anchor=True, metric='overlap')
+
+# TODO: check via plot
