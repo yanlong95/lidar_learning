@@ -119,6 +119,31 @@ def load_overlaps(file_path):
     return overlaps
 
 
+def load_submaps(file_path):
+    """
+    Load the submaps files (.npy) for anchor, pos_neg, and kf.
+
+    Args:
+        file_path: (string) the path of the folder containing the submaps files
+    Returns:
+        anchor_submaps: (np.array) the anchor submaps in shape (n, submap_size) in full frames list order.
+        pos_neg_submaps: (np.array) the pos_neg submaps in shape (n, submap_size) in full frames list order.
+        kf_submaps: (np.array) the keyframe submaps in shape (n_kf, submap_size) in keyframes list order.
+    """
+    full_path = os.path.expanduser(file_path)
+    if not os.path.exists(full_path):
+        raise FileNotFoundError(f'File {full_path} does not exist!')
+
+    anchor_submaps_path = os.path.join(full_path, 'anchor.npy')
+    pos_neg_submaps_path = os.path.join(full_path, 'pos_neg.npy')
+    kf_submaps_path = os.path.join(full_path, 'kf.npy')
+
+    anchor_submaps = np.load(anchor_submaps_path, allow_pickle=True).astype(np.int32)
+    pos_neg_submaps = np.load(pos_neg_submaps_path, allow_pickle=True).astype(np.int32)
+    kf_submaps = np.load(kf_submaps_path, allow_pickle=True).astype(np.int32)
+    return anchor_submaps, pos_neg_submaps, kf_submaps
+
+
 def read_pc(pc_path, format='numpy'):
     """
     Read a single point cloud in numpy form.
@@ -150,6 +175,36 @@ def read_image(image_path, device='cuda'):
     depth_data = torch.unsqueeze(depth_data, dim=0)                         # shape (1, H, W)
     depth_data = torch.unsqueeze(depth_data, dim=0)                         # shape (1, 1, H, W)
     return depth_data
+
+
+def read_submap(image_path, single_image_idx, submap_indices, submap_size, device='cuda'):
+    """
+    Read a single submap in tensor form.
+
+    Args:
+        image_path: (string) the path of the images.
+        single_image_idx: (int) the index of the current single scan.
+        submap_indices: (np.array) the indices of the submaps.
+        submap_size: (int) the size of the submap.
+        device: (string or torch.device()) running device.
+    Returns:
+        submap_data: (tensor) submap tensor in shape (1, 1, H, (submap_size+1)*W)
+    """
+    single_image_path = os.path.join(image_path, f'{str(single_image_idx).zfill(6)}.png')
+    submap_images_paths = [os.path.join(image_path, f'{str(idx).zfill(6)}.png') for idx in submap_indices]
+
+    single_image = read_image(single_image_path, device)                # in grayscale, shape (1, 1, H, W)
+    _, _, height, width = single_image.shape
+
+    submap = torch.zeros((1, 1, height, (submap_size+1)*width), dtype=torch.float32).to(device)
+    submap[:, :, :, :width] = single_image
+
+    for i in range(submap_size):
+        submap_image_path = submap_images_paths[i]
+        submap_image = read_image(submap_image_path, device)            # in grayscale, shape (1, 1, H, W)
+        submap[:, :, :, (i+1)*width:(i+2)*width] = submap_image
+
+    return submap
 
 
 if __name__ == '__main__':

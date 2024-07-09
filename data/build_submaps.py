@@ -3,7 +3,7 @@ File to build submaps for each scan in a dataset. The built subamps are saved as
 anchor submaps are built using only the previous keyframes.
 positive and negative submaps are built using all keyframes.
 keyframe submaps are built using only keyframes.
-Both anchor and pos_neg submaps are in all frames indices oders.
+Both anchor and pos_neg submaps are in all frames indices orders.
 Keyframe submaps are in keyframes indices order.
 """
 import os
@@ -45,13 +45,13 @@ if __name__ == '__main__':
         # compute the keyframes indices
         indices_kf = compute_keyframes_indices(xyz, xyz_kf)     # compute the indices of keyframes (in number of frames)
 
-        # compute the submaps for all frames (in shape (n, 3))
+        # compute the submaps for all frames (in shape (n, top_k))
         submaps_euclidean_in_kf_order = compute_submap_keyframes(xyz, xyz_kf, overlaps, top_k=5, overlap_dist_thresh=25.0,
                                                      is_anchor=False, metric='euclidean')
         submaps_overlap_in_kf_order = compute_submap_keyframes(xyz, xyz_kf, overlaps, top_k=5, overlap_dist_thresh=25.0,
                                                    is_anchor=False, metric='overlap')
 
-        # compute the submaps for anchor (in shape (n, 3)). Anchor submaps only consider the previous keyframes
+        # compute the submaps for anchor (in shape (n, top_k)). Anchor submaps only consider the previous keyframes
         submaps_anchor_euclidean_in_kf_order = compute_submap_keyframes(xyz, xyz_kf, overlaps, top_k=5, overlap_dist_thresh=25.0,
                                                             is_anchor=True, metric='euclidean')
         submaps_anchor_overlap_in_kf_order = compute_submap_keyframes(xyz, xyz_kf, overlaps, top_k=5, overlap_dist_thresh=25.0,

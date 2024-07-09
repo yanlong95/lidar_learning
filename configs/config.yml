@@ -7,7 +7,7 @@ data_root:
   pcd_files: "/media/vectr/vectr3/Dataset/overlap_transformer/pcd_files"
   png_files: "/media/vectr/vectr3/Dataset/overlap_transformer/png_files/512"
   poses: "/media/vectr/vectr3/Dataset/overlap_transformer/poses"
-  submaps: "/media/vectr/vectr3/Dataset/overlap_transformer/submaps/overlap"
+  submaps: "/media/vectr/vectr3/Dataset/overlap_transformer/submaps/overlap_heuristic"
   test: "/media/vectr/vectr3/Dataset/overlap_transformer/test"
   weights: "/media/vectr/vectr3/Dataset/overlap_transformer/weights/weights_07_08"
   predictions: "/media/vectr/vectr3/Dataset/overlap_transformer/predictions"
