@@ -12,7 +12,7 @@ class RangeProjection(object):
     Adapted from Z. Zhuang et al. https://github.com/ICEORY/PMF
     '''
 
-    def __init__(self, fov_up=3.0, fov_down=-25.0, proj_w=1024, proj_h=64, fov_left=-180, fov_right=180):
+    def __init__(self, fov_up=3.0, fov_down=-25.0, proj_w=1024, proj_h=64, fov_left=-180, fov_right=180, max_range=-1):
         # check params
         assert fov_up >= 0 and fov_down <= 0, f'require fov_up >= 0 and fov_down <= 0, fov_up/fov_down: {fov_up}/{fov_down}'
         assert fov_right >= 0 and fov_left <= 0, f'require fov_right >= 0 and fov_left <= 0, fov_right/fov_:left {fov_right}/{fov_left}'
@@ -32,6 +32,12 @@ class RangeProjection(object):
 
         self.cached_data = {}
 
+        # min and max range if specify
+        self.max_range = max_range
+        if max_range > 0:
+            self.min_range = 0.01
+
+
     def doProjection(self, pointcloud):
         # check input
         assert isinstance(pointcloud, np.ndarray), f'pointcloud should be numpy array, but got {type(pointcloud)}.'
@@ -39,6 +45,9 @@ class RangeProjection(object):
         self.cached_data = {}
         # get depth of all points
         depth = np.linalg.norm(pointcloud[:, :3], 2, axis=1)
+        if self.max_range > 0:
+            pointcloud = pointcloud[(depth > self.min_range) & (depth < self.max_range)]
+            depth = depth[(depth > self.min_range) & (depth < self.max_range)]
 
         # get point cloud components
         x = pointcloud[:, 0]

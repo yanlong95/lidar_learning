@@ -50,6 +50,7 @@ sensor:
   name: 'HDL64'
   type: 'spherical'
   scan_proj: false    # true
+  max_range: -1       # max range of the sensor, -1 for no limit
   proj_h: 64
   proj_w: 1024        # 2048
   fov_up: 3.0
