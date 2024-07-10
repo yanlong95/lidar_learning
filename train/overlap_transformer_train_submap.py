@@ -17,7 +17,7 @@ import numpy as np
 from tensorboardX import SummaryWriter
 from modules.overlap_transformer_submap import OverlapTransformer32Submap
 from modules.losses.overlap_transformer_loss import triplet_loss, triplet_confidence_loss
-from valid.overlap_transformer_valid import validation
+from valid.overlap_transformer_valid_submap import validation
 from tools.read_datasets_submap import (overlaps_submaps_loader, read_one_batch_overlaps_submap_n2n,
                                         read_one_batch_overlaps_submap_one2n)
 from tools.utils import RunningAverage, save_checkpoint, load_checkpoint

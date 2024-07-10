@@ -1,0 +1,70 @@
+"""
+The file copies from https://github.com/valeoai/rangevit/blob/main/dataset/range_view_loader.py with modifications.
+"""
+augmentation:
+  # flip            # original default
+  p_flipx: 0.
+  p_flipy: 0.5
+
+  # translation
+  p_transx: 0.      # 0.5
+  trans_xmin: -5
+  trans_xmax: 5
+  p_transy: 0.      # 0.5
+  trans_ymin: -3
+  trans_ymax: 3
+  p_transz: 0.      # 0.5
+  trans_zmin: -1
+  trans_zmax: 0.
+
+  # rotation
+  p_rot_roll: 0.    # 0.5
+  rot_rollmin: -5
+  rot_rollmax: 5
+  p_rot_pitch: 0.   # 0.5
+  rot_pitchmin: -5
+  rot_pitchmax: 5
+  p_rot_yaw: 0.9    # 0.5
+  rot_yawmin: 5
+  rot_yawmax: -5
+
+  # --------------------- new added ---------------------
+  # flip z
+  p_flipz: 0.0
+
+  # scale
+  p_scale: 0.9
+  scale_min: 0.99
+  scale_max: 5.0
+
+  # jitter
+  p_jitter: 0.9
+  jitter_std: 0.3
+
+  # random drop
+  p_drop: 0.9
+  drop_rmin: 0.0
+  drop_rmax: 0.1
+
+sensor:
+  name: 'HDL64'
+  type: 'spherical'
+  scan_proj: false    # true
+  proj_h: 64
+  proj_w: 1024        # 2048
+  fov_up: 3.0
+  fov_down: -25.0
+  fov_left: -180
+  fov_right: 180
+  img_mean:
+    - 12.12
+    - 10.88
+    - 0.23
+    - -1.04
+    - 0.21
+  img_stds:
+    - 12.32
+    - 11.47
+    - 6.91
+    - 0.86
+    - 0.16
