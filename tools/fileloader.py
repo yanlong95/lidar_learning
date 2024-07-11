@@ -149,13 +149,16 @@ def read_pc(pc_path, format='numpy'):
     Read a single point cloud in numpy form.
 
     Args:
-        pc_path: (string) the path of the point cloud file (pcd file).
+        pc_path: (string) the path of the point cloud file (pcd, bin file).
     Returns:
         points: (numpy array) points in shape (n, 3)
     """
     pc = o3d.io.read_point_cloud(pc_path)
     if format == 'numpy':
         pc = np.asarray(pc.points, dtype=np.float32)
+    elif format == 'bin':
+        pc = np.fromfile(pc_path, dtype=np.float32)
+        pc = pc.reshape((-1, 4))
 
     return pc
 
