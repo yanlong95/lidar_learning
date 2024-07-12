@@ -37,26 +37,6 @@ class RangeViewLoader(Dataset):
                 if key in field_name:
                     setattr(augment_params, key, value)
 
-            # augment_params.setFlipProb(p_flipx=augment_pc_config['p_flipx'], p_flipy=augment_pc_config['p_flipy'], p_flipz=augment_pc_config['p_flipz'])
-            # augment_params.setTranslationParams(
-            #     p_transx=augment_pc_config['p_transx'], trans_xmin=augment_pc_config['trans_xmin'], trans_xmax=augment_pc_config['trans_xmax'],
-            #     p_transy=augment_pc_config['p_transy'], trans_ymin=augment_pc_config['trans_ymin'], trans_ymax=augment_pc_config['trans_ymax'],
-            #     p_transz=augment_pc_config['p_transz'], trans_zmin=augment_pc_config['trans_zmin'], trans_zmax=augment_pc_config['trans_zmax'])
-            # augment_params.setRotationParams(
-            #     p_rot_roll=augment_pc_config['p_rot_roll'], rot_rollmin=augment_pc_config['rot_rollmin'], rot_rollmax=augment_pc_config['rot_rollmax'],
-            #     p_rot_pitch=augment_pc_config['p_rot_pitch'], rot_pitchmin=augment_pc_config['rot_pitchmin'], rot_pitchmax=augment_pc_config['rot_pitchmax'],
-            #     p_rot_yaw=augment_pc_config['p_rot_yaw'], rot_yawmin=augment_pc_config['rot_yawmin'], rot_yawmax=augment_pc_config['rot_yawmax'])
-            # augment_params.setScaleParams(p_scale=augment_pc_config['p_scale'], scale_min=augment_pc_config['scale_min'], scale_max=augment_pc_config['scale_max'])
-            # augment_params.setJitterParams(p_jitter=augment_pc_config['p_jitter'], jitter_std=augment_pc_config['jitter_std'])
-            # augment_params.setDropParams(p_drop=augment_pc_config['p_drop'], drop_min=augment_pc_config['drop_min'], drop_max=augment_pc_config['drop_max'])
-            #
-            # if augment_params.p_scale > 0:
-            #     print(f'Adding scaling with range [{augment_params.scale_min}, {augment_params.scale_max}] and probability {augment_params.p_scale}')
-            # if augment_params.p_jitter > 0:
-            #     print(f'Adding jitter with std [{augment_params.jitter_std}, {augment_params.scale_max}] and probability {augment_params.p_jitter}')
-            # if augment_params.p_drop > 0:
-            #     print(f'Adding random drop with rate [{augment_params.drop_min}, {augment_params.drop_max}] and probability {augment_params.p_drop}')
-
             self.augmentor = Augmentor(augment_params)
         else:
             self.augmentor = None

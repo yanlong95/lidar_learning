@@ -144,7 +144,7 @@ def load_submaps(file_path):
     return anchor_submaps, pos_neg_submaps, kf_submaps
 
 
-def read_pc(pc_path, format='numpy'):
+def read_pc(pc_path):
     """
     Read a single point cloud in numpy form.
 
@@ -153,12 +153,22 @@ def read_pc(pc_path, format='numpy'):
     Returns:
         points: (numpy array) points in shape (n, 3)
     """
-    pc = o3d.io.read_point_cloud(pc_path)
-    if format == 'numpy':
+    full_path = os.path.expanduser(pc_path)
+    if not os.path.exists(full_path):
+        raise FileNotFoundError(f'File {full_path} does not exist!')
+
+    _, ext = os.path.splitext(full_path)
+
+    if ext == '.pcd':
+        pc = o3d.io.read_point_cloud(full_path)
         pc = np.asarray(pc.points, dtype=np.float32)
-    elif format == 'bin':
-        pc = np.fromfile(pc_path, dtype=np.float32)
+    if ext == '.npy':
+        pc = np.load(full_path, allow_pickle=True).astype(np.float32)
+    elif ext == '.bin':
+        pc = np.fromfile(full_path, dtype=np.float32)
         pc = pc.reshape((-1, 4))
+    else:
+        raise TypeError(f'Point cloud file {full_path} cannot be read! File type is not supported.')
 
     return pc
 

@@ -1,7 +1,7 @@
 augmentation_pointcloud:
   # flip            # original default
   p_flipx: 0.
-  p_flipy: 0.5
+  p_flipy: 0.0      # 0.5 <- without range aug
 
   # translation
   p_transx: 0.      # 0.5
@@ -15,15 +15,15 @@ augmentation_pointcloud:
   trans_zmax: 0.
 
   # rotation
-  p_rot_roll: 0.1    # 0.5
-  rot_rollmin: -5
-  rot_rollmax: 5
-  p_rot_pitch: 0.1   # 0.5
-  rot_pitchmin: -5
-  rot_pitchmax: 5
-  p_rot_yaw: 0.9    # 0.5
-  rot_yawmin: -90  # -5 (raw-invariant -180)
-  rot_yawmax: 90   # 5 (raw-invariant 180)
+  p_rot_roll: 0.3    # 0.5
+  rot_rollmin: -2    # -5
+  rot_rollmax: 3     # 5
+  p_rot_pitch: 0.3   # 0.5
+  rot_pitchmin: -2   # -5
+  rot_pitchmax: 3    # 5
+  p_rot_yaw: 0.0     # 0.5 | 0.9 <- without range aug
+  rot_yawmin: -90    # -5 (raw-invariant -180)
+  rot_yawmax: 90     # 5 (raw-invariant 180)
 
   # --------------------- new added ---------------------
   # flip z
@@ -31,12 +31,12 @@ augmentation_pointcloud:
 
   # scale
   p_scale: 0.0
-  scale_min: 0.95
-  scale_max: 1.05
+  scale_min: 0.7
+  scale_max: 1.5
 
   # jitter
   p_jitter: 0.9
-  jitter_std: 0.1   # 0.3 ?
+  jitter_std: 0.05
 
   # random drop
   p_drop: 0.9
@@ -55,8 +55,8 @@ augmentation_image:
 
   # --------------------- range aug ---------------------
   # range mix
-  p_range_mix: 0.1          # 0.9
-  k_mix: [2, 3, 4,5, 6]     # mix strategies
+  p_range_mix: 0.3          # 0.9
+  k_mix: [2, 3, 4, 5, 6]     # mix strategies
 
   # range union
   p_range_union: 0.2

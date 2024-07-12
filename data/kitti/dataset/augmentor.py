@@ -39,8 +39,6 @@ class AugmentParams:
     rot_yawmax: float = 0.
 
     # ------------------------ new added ------------------------
-    yaw_only: bool = True
-
     p_scale: float = 0.
     scale_min: float = 1.0
     scale_max: float = 1.0
@@ -62,7 +60,6 @@ class AugmentParams:
     range_shift_min: float = 0.
     range_shift_max: float = 0.
     # -----------------------------------------------------------
-
 
     def setScaleParams(self, p_scale, scale_min, scale_max):
         self.p_scale = p_scale
@@ -117,146 +114,11 @@ class AugmentParams:
         self.rot_yawmax = rot_yawmax
 
     def __str__(self):
-        print('=== Augmentor parameters ===')
-        print(f'p_flipx: {self.p_flipx}, p_flipy: {self.p_flipy}, p_flipyz: {self.p_flipz}')
-        print(f'p_transx: {self.p_transx}, p_transxmin: {self.trans_xmin}, p_transxmax: {self.trans_xmax}')
-        print(f'p_transy: {self.p_transy}, p_transymin: {self.trans_ymin}, p_transymax: {self.trans_ymax}')
-        print(f'p_transz: {self.p_transz}, p_transzmin: {self.trans_zmin}, p_transzmax: {self.trans_zmax}')
-        print(f'p_rotroll: {self.p_rot_roll}, rot_rollmin: {self.rot_rollmin}, rot_rollmax: {self.rot_rollmax}')
-        print(f'p_rotpitch: {self.p_rot_pitch}, rot_pitchmin: {self.rot_pitchmin}, rot_pitchmax: {self.rot_pitchmax}')
-        print(f'p_rotyaw: {self.p_rot_yaw}, rot_yawmin: {self.rot_yawmin}, rot_yawmax: {self.rot_yawmax}')
-        print(f'p_scale: {self.p_scale}, scale_min: {self.scale_min}, scale_max: {self.scale_max}')
-        print(f'p_jitter: {self.p_jitter}, jitter_std: {self.jitter_std}')
-        print(f'p_drop: {self.p_drop}, drop_min: {self.drop_min}, drop_max: {self.drop_max}')
-        print(f'yaw_only: {self.yaw_only}')
+        params = '=== Augmentor parameters ===\n'                                                     
+        for item in vars(self).items():
+            params += f'{item[0]}: {item[1]}\n'
+        return params
 
-        print(f'p_range_mix: {self.p_range_mix}, k_mix: {self.k_mix}')
-        print(f'p_range_union: {self.p_range_union}, k_union: {self.k_union}')
-        print(f'p_range_shift: {self.p_range_shift}, range_shift_min: {self.range_shift_min}, range_shift_max: {self.range_shift_max}')
-
-
-# class AugmentParams(object):
-#     '''
-#     Adapted from Z. Zhuang et al. https://github.com/ICEORY/PMF
-#     '''
-#
-#     def __init__(self, p_flipx=0., p_flipy=0., p_flipz=0.,
-#                  p_transx=0., trans_xmin=0., trans_xmax=0.,
-#                  p_transy=0., trans_ymin=0., trans_ymax=0.,
-#                  p_transz=0., trans_zmin=0., trans_zmax=0.,
-#                  p_rot_roll=0., rot_rollmin=0., rot_rollmax=0.,
-#                  p_rot_pitch=0., rot_pitchmin=0, rot_pitchmax=0.,
-#                  p_rot_yaw=0., rot_yawmin=0., rot_yawmax=0.,
-#                  yaw_only=True,
-#                  p_scale=0., scale_min=1.0, scale_max=1.0,
-#                  p_jitter=0., jitter_std=0.,
-#                  p_drop=0., drop_min=0., drop_max=0.,):
-#         self.p_flipx = p_flipx
-#         self.p_flipy = p_flipy
-#         self.p_flipz = p_flipz
-#
-#         self.p_transx = p_transx
-#         self.trans_xmin = trans_xmin
-#         self.trans_xmax = trans_xmax
-#
-#         self.p_transy = p_transy
-#         self.trans_ymin = trans_ymin
-#         self.trans_ymax = trans_ymax
-#
-#         self.p_transz = p_transz
-#         self.trans_zmin = trans_zmin
-#         self.trans_zmax = trans_zmax
-#
-#         self.p_rot_roll = p_rot_roll
-#         self.rot_rollmin = rot_rollmin
-#         self.rot_rollmax = rot_rollmax
-#
-#         self.p_rot_pitch = p_rot_pitch
-#         self.rot_pitchmin = rot_pitchmin
-#         self.rot_pitchmax = rot_pitchmax
-#
-#         self.p_rot_yaw = p_rot_yaw
-#         self.rot_yawmin = rot_yawmin
-#         self.rot_yawmax = rot_yawmax
-#
-#         self.yaw_only = yaw_only
-#
-#         self.p_scale = p_scale
-#         self.scale_min = scale_min
-#         self.scale_max = scale_max
-#
-#         self.p_jitter = p_jitter
-#         self.jitter_std = jitter_std
-#
-#         self.p_drop = p_drop
-#         self.drop_min = drop_min
-#         self.drop_max = drop_max
-#
-#     def setScaleParams(self, p_scale, scale_min, scale_max):
-#         self.p_scale = p_scale
-#         self.scale_min = scale_min
-#         self.scale_max = scale_max
-#
-#     def setJitterParams(self, p_jitter, jitter_std):
-#         self.p_jitter = p_jitter
-#         self.jitter_std = jitter_std
-#
-#     def setDropParams(self, p_drop, drop_min, drop_max):
-#         self.p_drop = p_drop
-#         self.drop_min = drop_min
-#         self.drop_max = drop_max
-#
-#     def setFlipProb(self, p_flipx, p_flipy, p_flipz):
-#         self.p_flipx = p_flipx
-#         self.p_flipy = p_flipy
-#         self.p_flipz = p_flipz
-#
-#     def setTranslationParams(self,
-#                            p_transx=0., trans_xmin=0., trans_xmax=0.,
-#                            p_transy=0., trans_ymin=0., trans_ymax=0.,
-#                            p_transz=0., trans_zmin=0., trans_zmax=0.):
-#         self.p_transx = p_transx
-#         self.trans_xmin = trans_xmin
-#         self.trans_xmax = trans_xmax
-#
-#         self.p_transy = p_transy
-#         self.trans_ymin = trans_ymin
-#         self.trans_ymax = trans_ymax
-#
-#         self.p_transz = p_transz
-#         self.trans_zmin = trans_zmin
-#         self.trans_zmax = trans_zmax
-#
-#     def setRotationParams(self,
-#                         p_rot_roll=0., rot_rollmin=0., rot_rollmax=0.,
-#                         p_rot_pitch=0., rot_pitchmin=0, rot_pitchmax=0.,
-#                         p_rot_yaw=0., rot_yawmin=0., rot_yawmax=0.):
-#
-#         self.p_rot_roll = p_rot_roll
-#         self.rot_rollmin = rot_rollmin
-#         self.rot_rollmax = rot_rollmax
-#
-#         self.p_rot_pitch = p_rot_pitch
-#         self.rot_pitchmin = rot_pitchmin
-#         self.rot_pitchmax = rot_pitchmax
-#
-#         self.p_rot_yaw = p_rot_yaw
-#         self.rot_yawmin = rot_yawmin
-#         self.rot_yawmax = rot_yawmax
-#
-#     def __str__(self):
-#         print('=== Augmentor parameters ===')
-#         print(f'p_flipx: {self.p_flipx}, p_flipy: {self.p_flipy}, p_flipyz: {self.p_flipz}')
-#         print(f'p_transx: {self.p_transx}, p_transxmin: {self.trans_xmin}, p_transxmax: {self.trans_xmax}')
-#         print(f'p_transy: {self.p_transy}, p_transymin: {self.trans_ymin}, p_transymax: {self.trans_ymax}')
-#         print(f'p_transz: {self.p_transz}, p_transzmin: {self.trans_zmin}, p_transzmax: {self.trans_zmax}')
-#         print(f'p_rotroll: {self.p_rot_roll}, rot_rollmin: {self.rot_rollmin}, rot_rollmax: {self.rot_rollmax}')
-#         print(f'p_rotpitch: {self.p_rot_pitch}, rot_pitchmin: {self.rot_pitchmin}, rot_pitchmax: {self.rot_pitchmax}')
-#         print(f'p_rotyaw: {self.p_rot_yaw}, rot_yawmin: {self.rot_yawmin}, rot_yawmax: {self.rot_yawmax}')
-#         print(f'p_scale: {self.p_scale}, scale_min: {self.scale_min}, scale_max: {self.scale_max}')
-#         print(f'p_jitter: {self.p_jitter}, jitter_std: {self.jitter_std}')
-#         print(f'p_drop: {self.p_drop}, drop_min: {self.drop_min}, drop_max: {self.drop_max}')
-#         print(f'yaw_only: {self.yaw_only}')
 
 class Augmentor(object):
     def __init__(self, params: AugmentParams):
@@ -265,31 +127,33 @@ class Augmentor(object):
     @staticmethod
     def flipX(pointcloud):
         """
-        Flip the point cloud along x-axis.
+        Flip the point cloud along x-axis (equal to range image flip + shift).
         Args:
             pointcloud: (numpy array) point cloud in shape (n, channels).
         Returns:
             pointcloud: (numpy array) point cloud after flipping.
         """
-        pointcloud[:, 0] = -pointcloud[:, 0]
-        return pointcloud
+        pointcloud_ = pointcloud.copy()
+        pointcloud_[:, 0] = -pointcloud_[:, 0]
+        return pointcloud_
 
     @staticmethod
     def flipY(pointcloud):
         """
-        Flip the point cloud along y-axis.
+        Flip the point cloud along y-axis (equal to range image flip).
         Args:
             pointcloud: (numpy array) point cloud in shape (n, channels).
         Returns:
             pointcloud: (numpy array) point cloud after flipping.
         """
-        pointcloud[:, 1] = -pointcloud[:, 1]
-        return pointcloud
+        pointcloud_ = pointcloud.copy()
+        pointcloud_[:, 1] = -pointcloud_[:, 1]
+        return pointcloud_
 
     @staticmethod
     def translation(pointcloud, x, y, z):
         """
-        Translate the point cloud.
+        Translate the point cloud (torsion in range image NOT RECOMMEND).
         Args:
             pointcloud: (numpy array) point cloud in shape (n, channels).
             x: (float) translation along x-axis.
@@ -298,15 +162,16 @@ class Augmentor(object):
         Returns:
             pointcloud: (numpy array) point cloud after translation.
         """
-        pointcloud[:, 0] += x
-        pointcloud[:, 1] += y
-        pointcloud[:, 2] += z
-        return pointcloud
+        pointcloud_ = pointcloud.copy()
+        pointcloud_[:, 0] += x
+        pointcloud_[:, 1] += y
+        pointcloud_[:, 2] += z
+        return pointcloud_
 
     @staticmethod
     def rotation(pointcloud, roll, pitch, yaw, degrees=True):
         """
-        Rotate the point cloud.
+        Rotate the point cloud (roll, pitch are torsion, yaw is shifting in range image ROLL AND PITCH SHOULD BE SMALL).
         Args:
             pointcloud: (numpy array) point cloud in shape (n, channels).
             roll: (float) rotation angle around x-axis.
@@ -317,45 +182,44 @@ class Augmentor(object):
             pointcloud: (numpy array) point cloud after rotation.
         """
         rot_matrix = R.from_euler('zyx', [yaw, pitch, roll], degrees=degrees).as_matrix()
-        pointcloud[:, :3] = pointcloud[:, :3] @ rot_matrix.T
-        return pointcloud
+        pointcloud_ = pointcloud.copy()
+        pointcloud_[:, :3] = pointcloud_[:, :3] @ rot_matrix.T
+        return pointcloud_
 
     @staticmethod
-    def randomRotation(pointcloud, yaw_only=True):
+    def randomRotation(pointcloud):
         """
         Randomly rotate the point cloud.
         Args:
             pointcloud: (numpy array) point cloud in shape (n, channels).
-            yaw_only: (bool) whether to rotate only around z-axis.
         Returns:
             pointcloud: (numpy array) point cloud after rotation.
         """
-        if not yaw_only:
-            rot_matrix = R.random().as_matrix()
-        else:
-            yaw_angle = np.random.random() * 360
-            rot_matrix = R.from_euler('z', yaw_angle, degrees=True).as_matrix()
+        yaw_angle = np.random.random() * 360
+        rot_matrix = R.from_euler('z', yaw_angle, degrees=True).as_matrix()
 
-        pointcloud[:, :3] = pointcloud[:, :3] @ rot_matrix.T
-        return pointcloud
+        pointcloud_ = pointcloud.copy()
+        pointcloud_[:, :3] = pointcloud_[:, :3] @ rot_matrix.T
+        return pointcloud_
 
     # ------------------------ new added (modified) ------------------------
     @staticmethod
     def flipZ(pointcloud):
         """
-        Flip the point cloud along z-axis.
+        Flip the point cloud along z-axis (flip and shifting in vertical direction in range image NOT RECOMMEND).
         Args:
             pointcloud: (numpy array) point cloud in shape (n, channels).
         Returns:
             pointcloud: (numpy array) point cloud after flipping.
         """
-        pointcloud[:, 2] = -pointcloud[:, 2]
-        return pointcloud
+        pointcloud_ = pointcloud.copy()
+        pointcloud_[:, 2] = -pointcloud_[:, 2]
+        return pointcloud_
 
     @staticmethod
     def scale_cloud(pointcloud, scale_min, scale_max):
         """
-        Randomly scale the point cloud (only in x, y axis, e.g. move objects further).
+        Randomly scale the point cloud (only in x, y axis. Zoom in and out in range image).
         //TODO: add default scale factors.
         Args:
             pointcloud: (numpy array) point cloud in shape (n, channels).
@@ -365,8 +229,9 @@ class Augmentor(object):
             pointcloud: (numpy array) point cloud after scaling.
         """
         scale = np.random.uniform(scale_min, scale_max)
-        pointcloud[:, :2] *= scale
-        return pointcloud
+        pointcloud_ = pointcloud.copy()
+        pointcloud_[:, :2] *= scale
+        return pointcloud_
 
     @staticmethod
     def randomJitter(pointcloud, jitter_std):
@@ -379,8 +244,9 @@ class Augmentor(object):
             pointcloud: (numpy array) point cloud after jittering.
         """
         jitter = np.clip(np.random.normal(0, jitter_std, (pointcloud.shape[0], 3)), -3*jitter_std, 3*jitter_std)
-        pointcloud[:, :3] += jitter
-        return pointcloud
+        pointcloud_ = pointcloud.copy()
+        pointcloud_[:, :3] += jitter
+        return pointcloud_
 
     @staticmethod
     def randomDrop(pointcloud, drop_min, drop_max):
@@ -409,17 +275,24 @@ class Augmentor(object):
         description, I randomly switch k continuous rows to switch for each time.
         !!!
         Args:
-            image1: (numpy array) range image in shape (channels, height, width).
-            image2: (numpy array) range image in shape (channels, height, width).
+            image1: (numpy array) range image in shape (channels, height, width) or (height, width).
+            image2: (numpy array) range image in shape (channels, height, width) or (height, width).
             k_mix: (list) list of number of rows to switch, randomly select one each time.
         Returns:
             image: (numpy array) range image after switching rows.
         """
-        height = image1.shape[1]
-        num_mix = np.random.choice(k_mix, 1)
-        row_idx = np.random.randint(0, height - num_mix)
-        image1_ = image1.copy()
-        image1_[:, row_idx:row_idx+num_mix, :] = image2[:, row_idx:row_idx+num_mix, :]
+        if len(image1.shape) == 3:
+            height = image1.shape[1]
+            num_mix = np.random.choice(k_mix)
+            row_idx = np.random.randint(0, height - num_mix)
+            image1_ = image1.copy()
+            image1_[:, row_idx:row_idx+num_mix, :] = image2[:, row_idx:row_idx+num_mix, :]
+        else:
+            height = image1.shape[0]
+            num_mix = np.random.choice(k_mix)
+            row_idx = np.random.randint(0, height - num_mix)
+            image1_ = image1.copy()
+            image1_[row_idx:row_idx+num_mix, :] = image2[row_idx:row_idx+num_mix, :]
         return image1_
 
     @staticmethod
@@ -427,16 +300,22 @@ class Augmentor(object):
         """
         Union two range images.
         Args:
-            image1: (numpy array) range image in shape (channels, height, width).
-            image2: (numpy array) range image in shape (channels, height, width).
+            image1: (numpy array) range image in shape (channels, height, width) or (height, width).
+            image2: (numpy array) range image in shape (channels, height, width) or (height, width).
             k_union: (float) percent of empty pixels in image1 to fill with image2.
         Returns:
             image: (numpy array) range image after union.
         """
-        mask = image1[0, :, :] < 0      # assume 1st channel is depth
-        mask *= np.random.random(mask.shape) > k_union
-        image1_ = image1.copy()
-        image1_[:, mask] = image2[:, mask]
+        if len(image1.shape) == 3:
+            mask = image1[0, :, :] < 0      # assume 1st channel is depth
+            mask *= np.random.random(mask.shape) > k_union
+            image1_ = image1.copy()
+            image1_[:, mask] = image2[:, mask]
+        else:
+            mask = image1 < 0
+            mask *= np.random.random(mask.shape) > k_union
+            image1_ = image1.copy()
+            image1_[mask] = image2[mask]
         return image1_
 
     @staticmethod
@@ -444,16 +323,22 @@ class Augmentor(object):
         """
         Shift the range image along width (yaw rotation).
         Args:
-            image: (numpy array) range image in shape (channels, height, width).
+            image: (numpy array) range image in shape (channels, height, width) or (height, width).
             shift_min: (float) minimum shift ratio.
             shift_max: (float) maximum shift ratio.
         Returns:
             image: (numpy array) range image after shifting.
         """
-        width = image.shape[2]
-        shift = np.random.randint(int(shift_min * width), int(shift_max * width))
-        image_ = image.copy()
-        image_ = np.concatenate((image_[:, :, shift:], image_[:, :, :shift]), axis=2)
+        if len(image.shape) == 3:
+            width = image.shape[2]
+            shift = np.random.randint(int(shift_min * width), int(shift_max * width))
+            image_ = image.copy()
+            image_ = np.concatenate((image_[:, :, shift:], image_[:, :, :shift]), axis=2)
+        else:
+            width = image.shape[1]
+            shift = np.random.randint(int(shift_min * width), int(shift_max * width))
+            image_ = image.copy()
+            image_ = np.concatenate((image_[:, shift:], image_[:, :shift]), axis=1)
         return image_
 
     def doAugmentationPointcloud(self, pointcloud):
@@ -545,6 +430,7 @@ class Augmentor(object):
 
 
 if __name__ == '__main__':
+    from projection import RangeProjection
     # test augmentation
     config_path = '/home/vectr/PycharmProjects/lidar_learning/data/kitti/dataset/config_kitti.yml'
     config = yaml.safe_load(open(config_path))
@@ -552,6 +438,7 @@ if __name__ == '__main__':
     augment_img_config = config['augmentation_image']
     projection_config = config['sensor']
 
+    # assign values to augment_params
     augment_params = AugmentParams()
     field_name = {f.name for f in fields(AugmentParams) if f.init}
     for key, value in augment_pc_config.items():
@@ -562,8 +449,38 @@ if __name__ == '__main__':
         if key in field_name:
             setattr(augment_params, key, value)
 
-    attrs = vars(augment_params)
-    print(', '.join("%s: %s" % item for item in attrs.items()))
+    augmentor = Augmentor(augment_params)
+    projector = RangeProjection()
 
-    # TODO: check attributes assignment
-    # TODO: check augmentation functions
+    pc1 = '/media/vectr/T7/Datasets/public_datasets/kitti/dataset/sequences/00/velodyne/001000.bin'
+    pc2 = '/media/vectr/T7/Datasets/public_datasets/kitti/dataset/sequences/00/velodyne/002000.bin'
+
+    # load point cloud
+    from tools.fileloader import read_pc
+    import matplotlib.pyplot as plt
+    import time
+    pc1 = read_pc(pc1)
+    pc2 = read_pc(pc2)
+
+    # check augmentation functions
+    t0 = time.time()
+    pc1_aug = augmentor.doAugmentationPointcloud(pc1)
+    t1 = time.time()
+
+    _, img1_aug, _, _ = projector.doProjection(pc1_aug)
+    _, img1, _, _ = projector.doProjection(pc1)
+    _, img2, _, _ = projector.doProjection(pc2)
+    t2 = time.time()
+
+    img1_aug = augmentor.doAugmentationImage(img1_aug, img2)
+    t3 = time.time()
+
+    print(f'PC augmentation time: {t1-t0}')
+    print(f'Avg projection time: {(t2-t1) / 3}')
+    print(f'Img augmentation time: {t3-t2}')
+
+    fig, [ax1, ax2, ax3] = plt.subplots(3, 1)
+    ax1.imshow(img1)
+    ax2.imshow(img2)
+    ax3.imshow(img1_aug)
+    plt.show()
