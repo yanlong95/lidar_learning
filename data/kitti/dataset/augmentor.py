@@ -6,6 +6,7 @@ import yaml
 from scipy.spatial.transform import Rotation as R
 import random
 from dataclasses import dataclass, field, fields
+from typing import List
 
 
 @dataclass
@@ -51,7 +52,7 @@ class AugmentParams:
     drop_max: float = 0.
 
     p_range_mix: float = 0.
-    k_mix: list[int] = field(default_factory=list)
+    k_mix: List[int] = field(default_factory=list)
 
     p_range_union: float = 0.
     k_union: float = 0.
@@ -59,6 +60,10 @@ class AugmentParams:
     p_range_shift: float = 0.
     range_shift_min: float = 0.
     range_shift_max: float = 0.
+
+    p_range_drop: float = 0.
+    range_drop_min: float = 0.
+    range_drop_max: float = 0.
     # -----------------------------------------------------------
 
     def setScaleParams(self, p_scale, scale_min, scale_max):
@@ -112,6 +117,24 @@ class AugmentParams:
         self.p_rot_yaw = p_rot_yaw
         self.rot_yawmin = rot_yawmin
         self.rot_yawmax = rot_yawmax
+
+    def setRangeMixParams(self, p_range_mix, k_mix):
+        self.p_range_mix = p_range_mix
+        self.k_mix = k_mix
+
+    def setRangeUnionParams(self, p_range_union, k_union):
+        self.p_range_union = p_range_union
+        self.k_union = k_union
+
+    def setRangeShiftParams(self, p_range_shift, range_shift_min, range_shift_max):
+        self.p_range_shift = p_range_shift
+        self.range_shift_min = range_shift_min
+        self.range_shift_max = range_shift_max
+
+    def setRangeDropParams(self, p_range_drop, range_drop_min, range_drop_max):
+        self.p_range_drop = p_range_drop
+        self.range_drop_min = range_drop_min
+        self.range_drop_max = range_drop_max
 
     def __str__(self):
         params = '=== Augmentor parameters ===\n'                                                     
@@ -341,6 +364,33 @@ class Augmentor(object):
             image_ = np.concatenate((image_[:, shift:], image_[:, :shift]), axis=1)
         return image_
 
+    @staticmethod
+    def rangeDrop(image, drop_min, drop_max):
+        """
+        Randomly drop pixels from the range image. Pixels with small depth are more likely to be dropped.
+        Args:
+            image: (numpy array) range image in shape (channels, height, width) or (height, width).
+            drop_min: (float) minimum drop rate.
+            drop_max: (float) maximum drop rate.
+        Returns:
+            image: (numpy array) range image after dropping pixels.
+        """
+        if len(image.shape) == 3:
+            drop_rate = np.random.uniform(drop_min, drop_max)
+            pixel_drop_ratio = np.ones_like(image[0, :, :]) - image[0, :, :] / np.max(image[0, :, :])
+            pixel_drop_ratio = 0.8 * pixel_drop_ratio + 0.2
+            mask = np.random.rand(image.shape[1], image.shape[2]) < drop_rate * pixel_drop_ratio
+            image_ = image.copy()
+            image_[:, mask] = -1
+        else:
+            drop_rate = np.random.uniform(drop_min, drop_max)
+            pixel_drop_ratio = np.ones_like(image) - image / np.max(image)
+            pixel_drop_ratio = 0.98 * pixel_drop_ratio + 0.02
+            mask = np.random.rand(image.shape[0], image.shape[1]) < drop_rate * pixel_drop_ratio
+            image_ = image.copy()
+            image_[mask] = -1
+        return image_
+
     def doAugmentationPointcloud(self, pointcloud):
         # flip augment
         rand = random.uniform(0, 1)
@@ -426,6 +476,11 @@ class Augmentor(object):
         if rand < self.parmas.p_range_shift:
             pointcloud = self.rangeShift(pointcloud, self.parmas.range_shift_min, self.parmas.range_shift_max)
 
+        # range drop
+        rand = random.uniform(0, 1)
+        if rand < self.parmas.p_range_drop:
+            pointcloud = self.rangeDrop(pointcloud, self.parmas.range_drop_min, self.parmas.range_drop_max)
+
         return pointcloud
 
 
@@ -433,6 +488,7 @@ if __name__ == '__main__':
     from projection import RangeProjection
     # test augmentation
     config_path = '/home/vectr/PycharmProjects/lidar_learning/data/kitti/dataset/config_kitti.yml'
+    config_path = '/Users/yanlong/PycharmProjects/lidar_learning/data/kitti/dataset/config_kitti.yml'
     config = yaml.safe_load(open(config_path))
     augment_pc_config = config['augmentation_pointcloud']
     augment_img_config = config['augmentation_image']
@@ -452,8 +508,8 @@ if __name__ == '__main__':
     augmentor = Augmentor(augment_params)
     projector = RangeProjection()
 
-    pc1 = '/media/vectr/T7/Datasets/public_datasets/kitti/dataset/sequences/00/velodyne/001000.bin'
-    pc2 = '/media/vectr/T7/Datasets/public_datasets/kitti/dataset/sequences/00/velodyne/002000.bin'
+    pc1 = '/Volumes/T7/Datasets/public_datasets/kitti/dataset/sequences/00/velodyne/001000.bin'
+    pc2 = '/Volumes/T7/Datasets/public_datasets/kitti/dataset/sequences/00/velodyne/002000.bin'
 
     # load point cloud
     from tools.fileloader import read_pc

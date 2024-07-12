@@ -67,6 +67,11 @@ augmentation_image:
   range_shift_min: 0.25     # shifting range
   range_shift_max: 0.75
 
+  # range drop
+  p_range_drop: 0.5
+  range_drop_min: 0.0       # drop range
+  range_drop_max: 0.15      # drop range
+
   # -----------------------------------------------------
 # -------------------------------------------------------
 
