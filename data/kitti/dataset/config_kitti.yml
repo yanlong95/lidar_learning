@@ -1,4 +1,7 @@
 augmentation_pointcloud:
+  # do point cloud augmentation or not
+  do_pc_aug: true
+
   # flip            # original default
   p_flipx: 0.
   p_flipy: 0.0      # 0.5 <- without range aug
@@ -46,14 +49,14 @@ augmentation_pointcloud:
 
 # --------------------- new added -----------------------
 augmentation_image:
-  image_crop: false
+  do_img_crop: false
   image_size: [64, 1024]  # random crop at train
   window_size: [64, 1024] # sliding window size
   original_image_size: [64, 1024]
-
-  p_hflip: 0.0
-
   # --------------------- range aug ---------------------
+  # do range augmentation or not
+  do_img_aug: true
+
   # range mix
   p_range_mix: 0.3          # 0.9
   k_mix: [2, 3, 4, 5, 6]     # mix strategies
@@ -71,6 +74,9 @@ augmentation_image:
   p_range_drop: 0.5
   range_drop_min: 0.0       # drop range
   range_drop_max: 0.15      # drop range
+
+  # range horizontal flip
+  p_range_hflip: 0.0
 
   # -----------------------------------------------------
 # -------------------------------------------------------
