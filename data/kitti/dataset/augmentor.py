@@ -64,6 +64,8 @@ class AugmentParams:
     p_range_drop: float = 0.
     range_drop_min: float = 0.
     range_drop_max: float = 0.
+
+    p_range_hflip: float = 0.
     # -----------------------------------------------------------
 
     def setScaleParams(self, p_scale, scale_min, scale_max):
@@ -136,6 +138,9 @@ class AugmentParams:
         self.range_drop_min = range_drop_min
         self.range_drop_max = range_drop_max
 
+    def setRangeHFlipParams(self, p_range_hflip):
+        self.p_range_hflip = p_range_hflip
+
     def __str__(self):
         params = '=== Augmentor parameters ===\n'                                                     
         for item in vars(self).items():
@@ -144,8 +149,11 @@ class AugmentParams:
 
 
 class Augmentor(object):
-    def __init__(self, params: AugmentParams):
+    def __init__(self, params: AugmentParams, do_pc_aug=True, do_img_aug=True, do_img_crop=False):
         self.parmas = params
+        self.do_pc_aug = do_pc_aug
+        self.do_img_aug = do_img_aug
+        self.do_img_crop = do_img_crop
 
     @staticmethod
     def flipX(pointcloud):
@@ -391,6 +399,18 @@ class Augmentor(object):
             image_[mask] = -1
         return image_
 
+    @staticmethod
+    def rangeHFlip(image):
+        """
+        Horizontally flip the range image.
+        Args:
+            image: (numpy array) range image in shape (channels, height, width) or (height, width).
+        Returns:
+            image: (numpy array) range image after flipping.
+        """
+        image_ = np.flip(image, axis=-1).copy()
+        return image_
+
     def doAugmentationPointcloud(self, pointcloud):
         # flip augment
         rand = random.uniform(0, 1)
@@ -481,7 +501,19 @@ class Augmentor(object):
         if rand < self.parmas.p_range_drop:
             pointcloud = self.rangeDrop(pointcloud, self.parmas.range_drop_min, self.parmas.range_drop_max)
 
+        # range hflip
+        rand = random.uniform(0, 1)
+        if rand < self.parmas.p_range_hflip:
+            pointcloud = self.rangeHFlip(pointcloud)
+
         return pointcloud
+
+    def __str__(self):
+        aug = f'Do pointcloud augmentation: {self.do_pc_aug}\n' + \
+               f'Do image augmentation: {self.do_img_aug}\n' +  \
+               f'Do image crop: {self.do_img_crop}\n' +  \
+               f'{self.parmas}'
+        return aug
 
 
 if __name__ == '__main__':
@@ -520,7 +552,7 @@ if __name__ == '__main__':
 
     # check augmentation functions
     t0 = time.time()
-    pc1_aug = augmentor.doAugmentationPointcloud(pc1)
+    pc1_aug = augmentor.randomJitter(pc1, 0.03)
     t1 = time.time()
 
     _, img1_aug, _, _ = projector.doProjection(pc1_aug)
