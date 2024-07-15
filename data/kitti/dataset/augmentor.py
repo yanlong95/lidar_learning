@@ -541,7 +541,7 @@ if __name__ == '__main__':
     projector = RangeProjection()
 
     pc1 = '/Volumes/T7/Datasets/public_datasets/kitti/dataset/sequences/00/velodyne/001000.bin'
-    pc2 = '/Volumes/T7/Datasets/public_datasets/kitti/dataset/sequences/00/velodyne/002000.bin'
+    pc2 = '/Volumes/T7/Datasets/public_datasets/kitti/dataset/sequences/00/velodyne/003000.bin'
 
     # load point cloud
     from tools.fileloader import read_pc

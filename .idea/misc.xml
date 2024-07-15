@@ -3,5 +3,5 @@
   <component name="Black">
     <option name="sdkName" value="lidar_learning" />
   </component>
-  <component name="ProjectRootManager" version="2" project-jdk-name="overlaptransformer" project-jdk-type="Python SDK" />
+  <component name="ProjectRootManager" version="2" project-jdk-name="jupyter" project-jdk-type="Python SDK" />
 </project>
