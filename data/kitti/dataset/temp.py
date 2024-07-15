@@ -13,7 +13,7 @@ pc2 = read_pc(pc2_path)
 config = yaml.safe_load(open(config_path))
 
 projector = RangeProjection()
-range_view_loader = RangeViewLoader(dataset=pc1_path, config=config, is_train=True, depth_only=True, normalize=False, pc1=pc1, pc2=pc2)
+range_view_loader = RangeViewLoader(dataset=pc1_path, config=config, is_train=True, depth_only=True, normalize=True, pc1=pc1, pc2=pc2)
 print(range_view_loader.augmentor)
 
 img1 = range_view_loader[0].to('cpu').numpy()
