@@ -9,7 +9,7 @@ data_root:
   poses: "/media/vectr/vectr3/Dataset/overlap_transformer/poses"
   submaps: "/media/vectr/vectr3/Dataset/overlap_transformer/submaps/overlap_heuristic"
   test: "/media/vectr/vectr3/Dataset/overlap_transformer/test"
-  weights: "/media/vectr/vectr3/Dataset/overlap_transformer/weights/weights_07_08"
+  weights: "/media/vectr/vectr3/Dataset/overlap_transformer/weights/weights_07_15"
   predictions: "/media/vectr/vectr3/Dataset/overlap_transformer/predictions"
 
 seqs:

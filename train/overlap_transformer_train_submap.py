@@ -211,5 +211,5 @@ if __name__ == '__main__':
             training_seqs: sequences number for training (alone the lines of OverlapNet).
     """
     train_handler = trainHandler(params=parameters, img_folder=train_img_folder, overlaps_folder=train_overlaps_paths,
-                                 submaps_folder=train_submaps_paths, weights_folder=weights_folder, resume=True)
+                                 submaps_folder=train_submaps_paths, weights_folder=weights_folder, resume=False)
     train_handler.train_eval()

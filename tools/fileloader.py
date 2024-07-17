@@ -3,6 +3,8 @@ import numpy as np
 import torch
 import cv2
 import open3d as o3d
+import tqdm
+from pathlib import Path
 
 
 def load_files(folder_path):
@@ -162,7 +164,7 @@ def read_pc(pc_path):
     if ext == '.pcd':
         pc = o3d.io.read_point_cloud(full_path)
         pc = np.asarray(pc.points, dtype=np.float32)
-    if ext == '.npy':
+    elif ext == '.npy':
         pc = np.load(full_path, allow_pickle=True).astype(np.float32)
     elif ext == '.bin':
         pc = np.fromfile(full_path, dtype=np.float32)
@@ -218,6 +220,63 @@ def read_submap(image_path, single_image_idx, submap_indices, submap_size, devic
         submap[:, :, :, (i+1)*width:(i+2)*width] = submap_image
 
     return submap
+
+
+def save_pc(pc, dst_path, format='pcd'):
+    """
+    Save a point cloud in a pcd, npy or txt file.
+    Args:
+        pc: (numpy array) the point cloud in shape (n, 3).
+        dst_path: (string) the path of the point cloud file to save.
+        format: (string) the format of the point cloud file (pcd, npy, txt).
+    """
+    if format == 'npy':
+        np.save(dst_path, pc)
+    elif format == 'txt':
+        np.savetxt(dst_path, pc, delimiter=' ')
+    elif format == 'pcd':
+        if isinstance(pc, np.ndarray):
+            pc_o3d = o3d.t.geometry.PointCloud()
+            pc_o3d.point['positions'] = o3d.core.Tensor(pc)
+            o3d.t.io.write_point_cloud(dst_path, pc_o3d)
+        else:
+            o3d.t.io.write_point_cloud(dst_path, pc)
+    else:
+        raise ValueError(f'Point cloud format {format} is not supported!')
+
+
+def bin2pcd(src_path, dst_path):
+    """
+    Convert a binary file to a point cloud file in pcd format.
+    !!!Note, o3d does not support intensity to save in pcd format. Only xyz are saved in the dst file!!!
+    Args:
+        src_path: (string) the path of the binary file or the path of the folder containing the binary files.
+        dst_path: (string) the path of the destination folder.
+    """
+    full_path = os.path.expanduser(src_path)
+    if not os.path.exists(full_path):
+        raise FileNotFoundError(f'File {full_path} does not exist!')
+
+    full_path = os.path.expanduser(dst_path)
+    if not os.path.exists(full_path):
+        raise FileNotFoundError(f'File {full_path} does not exist!')
+
+    if os.path.isfile(src_path):
+        pc = read_pc(src_path)
+        pcd = o3d.t.geometry.PointCloud()
+        pcd.point['positions'] = o3d.core.Tensor(pc[:, :3])
+
+        fn = Path(src_path).stem
+        o3d.t.io.write_point_cloud(os.path.join(dst_path, f'{fn}.pcd'), pcd)
+    else:
+        files = load_files(src_path)
+        for file in tqdm.tqdm(files):
+            pc = read_pc(file)
+            pcd = o3d.t.geometry.PointCloud()
+            pcd.point['positions'] = o3d.core.Tensor(pc[:, :3])
+
+            fn = Path(file).stem
+            o3d.t.io.write_point_cloud(os.path.join(dst_path, f'{fn}.pcd'), pcd)
 
 
 if __name__ == '__main__':
