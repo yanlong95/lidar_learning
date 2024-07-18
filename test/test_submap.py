@@ -256,13 +256,14 @@ if __name__ == '__main__':
     weights_path = config['data_root']['weights']
     descriptors_folder = config['data_root']['descriptors']
     submaps_folder = config['data_root']['submaps']
+    submaps_folder = "/media/vectr/vectr3/Dataset/overlap_transformer/submaps/overlap"
 
     test_seq = config['seqs']['test'][8]
     test_img_folder = os.path.join(img_folder, test_seq)
     test_img_kf_folder = os.path.join(keyframes_folder, test_seq, 'png_files/512')
     test_poses_folder = os.path.join(poses_folder, test_seq, 'poses.txt')
     test_poses_kf_folder = os.path.join(keyframes_folder, test_seq, 'poses/poses_kf.txt')
-    weights_path = '/media/vectr/vectr3/Dataset/overlap_transformer/weights/weights_07_08'
+    weights_path = '/media/vectr/vectr3/Dataset/overlap_transformer/weights/weights_07_15'
     test_weights_path = os.path.join(weights_path, 'best.pth.tar')
     test_overlaps_table_path = os.path.join(overlaps_table_folder, f'{test_seq}.bin')
     test_descriptors_folder = os.path.join(descriptors_folder, test_seq)

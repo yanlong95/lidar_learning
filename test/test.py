@@ -250,7 +250,7 @@ if __name__ == '__main__':
     weights_path = config['data_root']['weights']
     descriptors_folder = config['data_root']['descriptors']
 
-    test_seq = config['seqs']['test'][9]
+    test_seq = config['seqs']['test'][8]
     test_img_folder = os.path.join(img_folder, test_seq)
     test_img_kf_folder = os.path.join(keyframes_folder, test_seq, 'png_files/512')
     test_poses_folder = os.path.join(poses_folder, test_seq, 'poses.txt')

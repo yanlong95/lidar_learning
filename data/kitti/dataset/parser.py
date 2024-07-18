@@ -73,16 +73,29 @@ class OverlapKitti:
         # anchor pointcloud
         anchor_pointcloud = self.readPCD(self.pointcloud_files[idx])
 
-        # positive pointclouds
-        num_pos = self.overlaps_batches[idx][3]
-        pos_indices = self.overlaps_batches[idx][5:5+num_pos]
+        # positive and negative point clouds
+        batch = self.overlaps_batches[idx]
+        num_pos = batch[3]
+        num_neg = batch[4]
+
+        # get indices in order of all point clouds (indices in self.pointcloud_files)
+        global_index = idx - batch[0]
+        pos_local_indices = batch[5:5+num_pos]
+        neg_local_indices = batch[105:105+num_neg:]
+
+        pos_indices = pos_local_indices + global_index
+        neg_indices = neg_local_indices + global_index
+
+        # random select positive and negative point clouds
         num_pos = min(num_pos, max_num_pos)
+        num_neg = min(num_neg, max_num_neg)
         pos_indices = np.random.choice(pos_indices, num_pos, replace=False)
+        neg_indices = np.random.choice(neg_indices, num_neg, replace=False)
 
-        # negative pointclouds
-        num_neg = self.overlaps_batches[idx][4]
+        pos_pointclouds = [self.readPCD(self.pointcloud_files[i]) for i in pos_indices]
+        neg_pointclouds = [self.readPCD(self.pointcloud_files[i]) for i in neg_indices]
 
-        return pointcloud
+        return anchor_pointcloud, pos_pointclouds, neg_pointclouds
 
     # for debugging
     def __getitem__(self, idx):
@@ -94,7 +107,8 @@ class OverlapKitti:
 
 if __name__ == '__main__':
     dataset_path = '/media/vectr/T7/Datasets/public_datasets/kitti/dataset/sequences'
-    sequences = [0, 1]
+    sequences = [0, 1, 2]
     config_path = '/home/vectr/PycharmProjects/lidar_learning/data/kitti/dataset/config_kitti.yml'
 
     kitti = OverlapKitti(dataset_path, sequences)
+    kitti.loadDataByIndex(0, 30, 30)

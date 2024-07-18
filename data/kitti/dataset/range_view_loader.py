@@ -2,6 +2,7 @@
 Original code from: https://github.com/valeoai/rangevit/blob/main/dataset/range_view_loader.py with modifications.
 """
 import numpy as np
+import einops
 import torch
 from torch.utils.data import Dataset
 import torchvision.transforms as T
@@ -99,8 +100,8 @@ class RangeViewLoader(Dataset):
 
         # do image augmentation
         if self.is_train and self.augmentor.do_img_aug:
-            # pointcloud_ref = self.dataset.loadDataByIndex(np.random.randint(len(self.dataset)) - 1)
-            pointcloud_ref = self.dataset.loadDataByIndex(1000)
+            pointcloud_ref = self.dataset.loadDataByIndex(np.random.randint(len(self.dataset)) - 1)
+            # pointcloud_ref = self.dataset.loadDataByIndex(1000)
             if self.depth_only:
                 _, proj_range_ref, _, _ = self.projection.doProjection(pointcloud_ref)
                 proj_ref = proj_range_ref[np.newaxis, ...]
@@ -114,7 +115,9 @@ class RangeViewLoader(Dataset):
             if self.depth_only:
                 proj_tensor = (proj_tensor - self.proj_img_mean[0]) / self.proj_img_stds[0]
             else:
-                proj_tensor = (proj_tensor - self.proj_img_mean) / self.proj_img_stds
+                mean = einops.repeat(self.proj_img_mean, 'c -> c h w', h=proj_tensor.shape[1], w=proj_tensor.shape[2])
+                stds = einops.repeat(self.proj_img_stds, 'c -> c h w', h=proj_tensor.shape[1], w=proj_tensor.shape[2])
+                proj_tensor = (proj_tensor - mean) / stds
 
         return proj_tensor
 

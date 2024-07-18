@@ -2,6 +2,7 @@
 Original code from: https://github.com/valeoai/rangevit/blob/main/dataset/range_view_loader.py with modifications.
 """
 import numpy as np
+import einops
 import torch
 from torch.utils.data import Dataset
 import torchvision.transforms as T
@@ -83,40 +84,82 @@ class RangeViewLoader(Dataset):
         proj_mask_tensor: HxW
         '''
         # sample data
-        pointcloud = self.dataset.loadDataByIndex(index)
+        max_num_pos = self.config['batch']['max_num_pos']
+        max_num_neg = self.config['batch']['max_num_neg']
+        anchor_pc, pos_pc, neg_pc = self.dataset.loadDataByIndex(index, max_num_pos, max_num_neg)
 
         # do point cloud augmentation
         if self.is_train and self.augmentor.do_pc_aug:
-            pointcloud = self.augmentor.doAugmentationPointcloud(pointcloud)
+            anchor_pc = self.augmentor.doAugmentationPointcloud(anchor_pc)
+            pos_pc = [self.augmentor.doAugmentationPointcloud(pc) for pc in pos_pc]
+            neg_pc = [self.augmentor.doAugmentationPointcloud(pc) for pc in neg_pc]
 
         # do projection
         if self.depth_only:
-            _, proj_range, _, _ = self.projection.doProjection(pointcloud)
-            proj = proj_range[np.newaxis, ...]
+            _, anchor_proj_range, _, _ = self.projection.doProjection(anchor_pc)
+            anchor_proj = anchor_proj_range[np.newaxis, ...]
+            pos_proj = []
+            neg_proj = []
+            for pc in pos_pc:
+                _, pos_proj_range, _, _ = self.projection.doProjection(pc)
+                pos_proj.append(pos_proj_range[np.newaxis, ...])
+            for pc in neg_pc:
+                _, neg_proj_range, _, _ = self.projection.doProjection(pc)
+                neg_proj.append(neg_proj_range[np.newaxis, ...])
         else:
-            proj_pointcloud, proj_range, proj_idx, proj_mask = self.projection.doProjection(pointcloud)
-            proj = np.concatenate([proj_range[np.newaxis, ...], proj_pointcloud.transpose((2, 0, 1))], axis=0)
+            anchor_proj_pointcloud, anchor_proj_range, _, _ = self.projection.doProjection(anchor_pc)
+            anchor_proj = np.concatenate([anchor_proj_range[np.newaxis, ...],
+                                          anchor_proj_pointcloud.transpose((2, 0, 1))], axis=0)
+            pos_proj = []
+            neg_proj = []
+            for pc in pos_pc:
+                pos_proj_pointcloud, pos_proj_range, _, _ = self.projection.doProjection(pc)
+                pos_proj_i = np.concatenate([pos_proj_range[np.newaxis, ...],
+                                             pos_proj_pointcloud.transpose((2, 0, 1))], axis=0)
+                pos_proj.append(pos_proj_i)
+            for pc in neg_pc:
+                neg_proj_pointcloud, neg_proj_range, _, _ = self.projection.doProjection(pc)
+                neg_proj_i = np.concatenate([neg_proj_range[np.newaxis, ...],
+                                             neg_proj_pointcloud.transpose((2, 0, 1))], axis=0)
+                neg_proj.append(neg_proj_i)
 
         # do image augmentation
         if self.is_train and self.augmentor.do_img_aug:
-            # pointcloud_ref = self.dataset.loadDataByIndex(np.random.randint(len(self.dataset)) - 1)
-            pointcloud_ref = self.dataset.loadDataByIndex(1000)
+            pc_ref, _, _ = self.dataset.loadDataByIndex(np.random.randint(len(self.dataset)) - 1, 1, 1)
+            # pc_ref, _, _ = self.dataset.loadDataByIndex(1000, 1, 1)
             if self.depth_only:
-                _, proj_range_ref, _, _ = self.projection.doProjection(pointcloud_ref)
+                _, proj_range_ref, _, _ = self.projection.doProjection(pc_ref)
                 proj_ref = proj_range_ref[np.newaxis, ...]
             else:
-                proj_pointcloud_ref, proj_range_ref, proj_idx_ref, proj_mask_ref = self.projection.doProjection(pointcloud_ref)
+                proj_pointcloud_ref, proj_range_ref, proj_idx_ref, proj_mask_ref = self.projection.doProjection(pc_ref)
                 proj_ref = np.concatenate([proj_range_ref[np.newaxis, ...], proj_pointcloud_ref.transpose((2, 0, 1))], axis=0)
-            proj = self.augmentor.doAugmentationImage(proj, proj_ref)
 
-        proj_tensor = torch.from_numpy(proj)
+            anchor_proj = self.augmentor.doAugmentationImage(anchor_proj, proj_ref)
+            pos_img = []
+            neg_img = []
+            for pos_proj_i in pos_proj:
+                pos_img.append(self.augmentor.doAugmentationImage(pos_proj_i, proj_ref))
+            for neg_proj_i in neg_proj:
+                neg_img.append(self.augmentor.doAugmentationImage(neg_proj_i, proj_ref))
+
+        anchor_proj_tensor = torch.from_numpy(anchor_proj)
+        pos_proj_tensor = torch.from_numpy(np.array(pos_img))
+        neg_proj_tensor = torch.from_numpy(np.array(neg_img))
+
         if self.normalize:
             if self.depth_only:
-                proj_tensor = (proj_tensor - self.proj_img_mean[0]) / self.proj_img_stds[0]
+                anchor_proj_tensor = (anchor_proj_tensor - self.proj_img_mean[0]) / self.proj_img_stds[0]
+                pos_proj_tensor = (pos_proj_tensor - self.proj_img_mean[0]) / self.proj_img_stds[0]
+                neg_proj_tensor = (neg_proj_tensor - self.proj_img_mean[0]) / self.proj_img_stds[0]
             else:
-                proj_tensor = (proj_tensor - self.proj_img_mean) / self.proj_img_stds
+                mean = einops.repeat(self.proj_img_mean, 'c -> c h w', h=anchor_proj.shape[1], w=anchor_proj.shape[2])
+                stds = einops.repeat(self.proj_img_stds, 'c -> c h w', h=anchor_proj.shape[1], w=anchor_proj.shape[2])
+                anchor_proj_tensor = (anchor_proj_tensor - mean) / stds
+                pos_proj_tensor = (pos_proj_tensor - mean) / stds
+                neg_proj_tensor = (neg_proj_tensor - mean) / stds
 
-        return proj_tensor
+        anchor_proj_tensor = anchor_proj_tensor.unsqueeze(0)
+        return anchor_proj_tensor, pos_proj_tensor, neg_proj_tensor
 
     def __len__(self):
         if self.data_len > 0 and self.data_len < len(self.dataset):
