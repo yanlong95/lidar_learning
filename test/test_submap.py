@@ -258,7 +258,7 @@ if __name__ == '__main__':
     submaps_folder = config['data_root']['submaps']
     submaps_folder = "/media/vectr/vectr3/Dataset/overlap_transformer/submaps/overlap"
 
-    test_seq = config['seqs']['test'][8]
+    test_seq = config['seqs']['test'][5]
     test_img_folder = os.path.join(img_folder, test_seq)
     test_img_kf_folder = os.path.join(keyframes_folder, test_seq, 'png_files/512')
     test_poses_folder = os.path.join(poses_folder, test_seq, 'poses.txt')
