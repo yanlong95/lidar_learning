@@ -21,7 +21,7 @@ for sequence in sequences:
     dataloader = RangeViewLoader(dataset=kitti, config=config, is_train=True, depth_only=True, normalize=False)
 
     for j in tqdm.tqdm(range(num_aug)):
-        dst_path = os.path.join(data_root, sequence, 'png_files/512', f'aug{j}')
+        dst_path = os.path.join(data_root, sequence, 'png_files/1024', f'aug{j}')
         if not os.path.exists(dst_path):
             os.makedirs(dst_path)
 

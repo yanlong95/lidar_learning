@@ -26,21 +26,16 @@ from tools.fileloader import load_xyz_rot, load_overlaps
 
 
 if __name__ == '__main__':
-    config_path = '/home/vectr/PycharmProjects/lidar_learning/configs/config.yml'
-    config = yaml.safe_load(open(config_path))
-
-    frames_poses_folder = config['data_root']['poses']
-    keyframes_poses_folder = config['data_root']['keyframes']
-    overlaps_folder = config['data_root']['overlaps']
-    submaps_folder = config['data_root']['submaps']
-
-    sequences = config['seqs']['all']
+    data_root = '/media/vectr/T7/Datasets/public_datasets/kitti/dataset/sequences'
+    sequences = ['00', '01', '02', '03', '04', '05', '06', '07', '08', '09', '10', '11', '12', '13', '14', '15', '16',
+                 '17', '18', '19', '20', '21']
     top_k = 5
 
     for sequence in sequences:
-        frames_poses_path = os.path.join(frames_poses_folder, sequence, 'poses.txt')
-        keyframes_poses_path = os.path.join(keyframes_poses_folder, sequence, 'poses', 'poses_kf.txt')
-        overlaps_path = os.path.join(overlaps_folder, f'{sequence}.bin')
+        frames_poses_path = os.path.join(data_root, sequence, 'poses/poses.txt')
+        keyframes_poses_path = os.path.join(data_root, sequence, 'keyframes', 'poses_kf.txt')
+        overlaps_path = os.path.join(data_root, sequence, 'overlaps', 'overlaps.bin')
+        submaps_folder = os.path.join(data_root, sequence, 'submaps')
 
         # load the poses of the frames
         xyz, _ = load_xyz_rot(frames_poses_path)
@@ -52,17 +47,17 @@ if __name__ == '__main__':
 
         # compute the submaps for all frames (in shape (n, top_k))
         submaps_euclidean_in_kf_order = compute_submap_keyframes(xyz, xyz_kf, overlaps, top_k=5,
-                                                                 overlap_dist_thresh=25.0,
+                                                                 overlap_dist_thresh=500.0,
                                                                  is_anchor=False, metric='euclidean')
-        submaps_overlap_in_kf_order = compute_submap_keyframes(xyz, xyz_kf, overlaps, top_k=5, overlap_dist_thresh=25.0,
+        submaps_overlap_in_kf_order = compute_submap_keyframes(xyz, xyz_kf, overlaps, top_k=5, overlap_dist_thresh=500.0,
                                                                is_anchor=False, metric='overlap')
 
         # compute the submaps for anchor (in shape (n, top_k)). Anchor submaps only consider the previous keyframes
         submaps_anchor_euclidean_in_kf_order = compute_submap_keyframes(xyz, xyz_kf, overlaps, top_k=5,
-                                                                        overlap_dist_thresh=25.0,
+                                                                        overlap_dist_thresh=500.0,
                                                                         is_anchor=True, metric='euclidean')
         submaps_anchor_overlap_in_kf_order = compute_submap_keyframes(xyz, xyz_kf, overlaps, top_k=5,
-                                                                      overlap_dist_thresh=25.0,
+                                                                      overlap_dist_thresh=500.0,
                                                                       is_anchor=True, metric='overlap')
 
         # transform the submaps indices from keyframes indices order to all frames indices order
@@ -115,8 +110,8 @@ if __name__ == '__main__':
             submaps_anchor_overlap[i, :] = selected_kfs_overlap
 
         # save the submaps
-        submaps_euclidean_saving_path = os.path.join(submaps_folder, 'euclidean_heuristic', sequence)
-        submaps_overlap_saving_path = os.path.join(submaps_folder, 'overlap_heuristic', sequence)
+        submaps_euclidean_saving_path = os.path.join(submaps_folder, 'euclidean_heuristic')
+        submaps_overlap_saving_path = os.path.join(submaps_folder, 'overlap_heuristic')
 
         if not os.path.exists(submaps_euclidean_saving_path):
             os.makedirs(submaps_euclidean_saving_path)

@@ -24,9 +24,9 @@ augmentation_pointcloud:
   p_rot_pitch: 0.3   # 0.5
   rot_pitchmin: -2   # -5
   rot_pitchmax: 3    # 5
-  p_rot_yaw: 0.0     # 0.5 | 0.9 <- without range aug
-  rot_yawmin: -90    # -5 (raw-invariant -180)
-  rot_yawmax: 90     # 5 (raw-invariant 180)
+  p_rot_yaw: 0.3     # 0.5 | 0.9 <- without range aug
+  rot_yawmin: -5    # -5 (raw-invariant -180)
+  rot_yawmax: 5     # 5 (raw-invariant 180)
 
   # --------------------- new added ---------------------
   # flip z
@@ -55,7 +55,7 @@ augmentation_image:
   original_image_size: [64, 1024]
   # --------------------- range aug ---------------------
   # do range augmentation or not
-  do_img_aug: true
+  do_img_aug: false
 
   # range mix
   p_range_mix: 0.3          # 0.9
@@ -89,7 +89,7 @@ sensor:
 #  proj_h: 64
 #  proj_w: 1024        # 2048
   proj_h: 64
-  proj_w: 512        # 2048
+  proj_w: 1024        # 2048
   fov_up: 3.0
   fov_down: -25.0
   fov_left: -180

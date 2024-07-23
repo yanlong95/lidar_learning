@@ -60,7 +60,6 @@ def compute_poses(filename, calibration):
         pose[2, :] = values[8:12]
         pose[3, 3] = 1.0
 
-        # poses.append(np.matmul(Tr, np.matmul(pose, Tr_inv)))
         poses.append(np.matmul(Tr_inv, np.matmul(pose, Tr)))
 
     poses = np.array(poses)

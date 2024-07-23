@@ -17,7 +17,7 @@ from matplotlib import image as mpimg
 from tools.fileloader import load_files, read_pc
 
 
-def range_projection(points, params, proj_H=32, proj_W=900):
+def range_projection(points, params, proj_H=32, proj_W=512):
     """
     Project a point cloud into a spherical projection, range image.
 
@@ -36,8 +36,9 @@ def range_projection(points, params, proj_H=32, proj_W=900):
 
     # get depth of all points
     depth = np.linalg.norm(points[:, :3], axis=1)
-    points = points[(depth > params['eps']) & (depth < params['max_range_0.8'])]
-    depth = depth[(depth > params['eps']) & (depth < params['max_range_0.8'])]
+
+    # points = points[(depth > params['eps']) & (depth < params['max_range_0.8'])]
+    # depth = depth[(depth > params['eps']) & (depth < params['max_range_0.8'])]
 
     # get scan components
     points_x = points[:, 0]
@@ -46,7 +47,7 @@ def range_projection(points, params, proj_H=32, proj_W=900):
 
     # get angles of all points
     yaw = -np.arctan2(points_y, points_x)
-    pitch = np.arcsin(points_z / depth)
+    pitch = np.arcsin(points_z / (depth + params['eps']))
 
     # get projections in image coords
     proj_x = 0.5 * (yaw / np.pi + 1.0)  # in [0.0, 1.0]
