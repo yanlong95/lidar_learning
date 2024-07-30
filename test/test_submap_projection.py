@@ -45,7 +45,7 @@ class testHandler():
         self.predictions_folder = predictions_folder
         self.submaps_folder = submaps_path
 
-    def compute_descriptors(self, img_paths, model, submaps, submap_size):
+    def compute_descriptors(self, img_paths, submaps_path, model, submaps, submap_size):
         num_scans = len(img_paths)
         descriptors = np.zeros((num_scans, self.descriptor_size), dtype=np.float32)
 
@@ -53,10 +53,14 @@ class testHandler():
         with torch.no_grad():
             for i in tqdm.tqdm(range(num_scans)):
                 curr_batch = read_image(img_paths[i])
-                # curr_batch = torch.cat((curr_batch, curr_batch), dim=0)     # no idea why, keep it now, need to test and remove !!!!!
+
+                print(img_paths[i])
                 for j in range(submap_size):
-                    submap_scan = read_image(img_paths[submaps[i, j]])
+                    # submap_scan = read_image(img_paths[submaps[i, j]])
+                    submap_scan = read_image(os.path.join(submaps_path, f'{str(i).zfill(6)}/{str(j)}.png'))
                     curr_batch = torch.cat((curr_batch, submap_scan), dim=-1)
+                    print(os.path.join(submaps_path, f'{str(i).zfill(6)}/{str(j)}.png'))
+                print('-----------------------------------')
                 curr_descriptors = model(curr_batch)
                 descriptors[i, :] = curr_descriptors[0, :].cpu().detach().numpy()
 
@@ -190,6 +194,8 @@ class testHandler():
         if self.overlaps_table_path is not None:
             overlaps_table = load_overlaps(self.overlaps_table_path)
         anchors_submaps, _, kf_submaps = load_submaps(self.submaps_folder)
+        submaps_path = os.path.join(self.submaps_folder, 'anchor')
+        submaps_kf_path = os.path.join(self.submaps_folder, 'kf')
 
         # load model
         checkpoint = torch.load(self.weights_path)
@@ -201,10 +207,10 @@ class testHandler():
             descriptors_kf = np.load(os.path.join(self.descriptors_folder, 'descriptors_kf.npy'))
         else:
             print('calculating descriptors for test frames ...')
-            descriptors = self.compute_descriptors(img_paths, self.model, anchors_submaps, self.submap_size)
+            descriptors = self.compute_descriptors(img_paths, submaps_path, self.model, anchors_submaps, self.submap_size)
 
             print('calculating descriptors for keyframe ...')
-            descriptors_kf = self.compute_descriptors(img_kf_paths, self.model, kf_submaps, self.submap_size)
+            descriptors_kf = self.compute_descriptors(img_kf_paths, submaps_kf_path, self.model, kf_submaps, self.submap_size)
 
             # save descriptors and keyframes descriptors
             if self.descriptors_folder is not None:
@@ -258,7 +264,7 @@ if __name__ == '__main__':
     submaps_folder = config['data_root']['submaps']
     submaps_folder = "/media/vectr/vectr3/Dataset/overlap_transformer/submaps/overlap"
 
-    test_seq = config['seqs']['test'][5]
+    test_seq = config['seqs']['test'][1]
     test_img_folder = os.path.join(img_folder, test_seq)
     test_img_kf_folder = os.path.join(keyframes_folder, test_seq, 'png_files/512')
     test_poses_folder = os.path.join(poses_folder, test_seq, 'poses.txt')

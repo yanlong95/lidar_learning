@@ -85,7 +85,7 @@ def validation(model, top_n=5, metric='euclidean', method='overlap', dist_thresh
         for i in tqdm.tqdm(range(num_scans)):
             # read batch
             anchor_batch, pos_batch, neg_batch, pos_overlaps, neg_overlaps, num_pos, num_neg = read_one_batch_overlaps_submap_n2n(
-                img_folder, submaps_folder, overlaps, anchor_submaps, pos_neg_submaps, i, channels, height, width,
+                img_folder, valid_submaps_path, overlaps, anchor_submaps, pos_neg_submaps, i, channels, height, width,
                 num_pos_max, num_neg_max, submap_size, device, shuffle=False)
 
             # in case no pair

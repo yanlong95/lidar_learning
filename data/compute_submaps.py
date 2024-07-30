@@ -28,7 +28,7 @@ def compute_keyframes_indices(xyz, xyz_kf):
     return indices_kf
 
 
-def compute_submap_keyframes(xyz, xyz_kf, overlaps, top_k=5, is_anchor=False, overlap_dist_thresh=15.0,
+def compute_submap_keyframes(xyz, xyz_kf, overlaps, top_k=5, is_anchor=False, overlap_dist_thresh=100.0,
                              metric='euclidean'):
     """
     Select the top_k keyframes to create a submap for each scan.
@@ -67,7 +67,7 @@ def compute_submap_keyframes(xyz, xyz_kf, overlaps, top_k=5, is_anchor=False, ov
     elif metric == 'overlap':
         # search the top_k keyframes base on the overlap values
         indices_kf = compute_keyframes_indices(xyz, xyz_kf)
-        overlaps_kf = overlaps[:, indices_kf]             # each row is the overlaps between curr and keyframe
+        overlaps_kf = overlaps[:, indices_kf]             # each row is the overlaps between curr and keyframes
 
         # search the top_k keyframes for each frame
         indices = np.zeros((len(overlaps), top_k), dtype=int)
@@ -97,7 +97,7 @@ def compute_submap_keyframes(xyz, xyz_kf, overlaps, top_k=5, is_anchor=False, ov
                     for j in range(len(xyz_kf)):
                         xyz_kf_curr = xyz_kf[rank_kf[j], :]
                         if np.linalg.norm(xyz_curr - xyz_kf_curr) <= overlap_dist_thresh:
-                            indices[i, valid_count] = rank_kf[j]
+                            indices[i, valid_count] = rank_kf[mask][j]
                             valid_count += 1
                         if valid_count >= top_k:
                             break
@@ -126,7 +126,7 @@ if __name__ == '__main__':
     xyz_kf, _ = load_xyz_rot(keyframes_poses_path)
     overlaps = load_overlaps(overlaps_path)
     indices_kf = compute_keyframes_indices(xyz, xyz_kf)
-    indices = compute_submap_keyframes(xyz, xyz_kf, overlaps, is_anchor=False, overlap_dist_thresh=15.0,
+    indices = compute_submap_keyframes(xyz, xyz_kf, overlaps, is_anchor=True, overlap_dist_thresh=15.0,
                                        metric='overlap')
 
     # for i in range(xyz.shape[0]):

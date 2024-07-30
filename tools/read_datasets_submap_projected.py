@@ -35,6 +35,11 @@ def overlaps_submaps_loader(overlaps_paths, submaps_paths, shuffle=True):
         anchor_submaps_all = anchor_submaps_all[mask]
         pos_neg_submaps_all = pos_neg_submaps_all[mask]
 
+    print(overlaps_all)
+    print(anchor_submaps_all)
+    print(pos_neg_submaps_all)
+    print('=========================')
+
     return overlaps_all, anchor_submaps_all, pos_neg_submaps_all
 
 
@@ -162,7 +167,12 @@ def read_one_batch_overlaps_submap_n2n(img_folder_path, submaps_folder, overlaps
     # TODO: check if normal batches are useless and delete them.
 
     batch = overlaps[idx, :]
-    submaps_base_path = pathlib.Path(submaps_folder[0]).parent
+    if isinstance(submaps_folder, list):
+        submaps_base_path = pathlib.Path(submaps_folder[0]).parent
+    elif isinstance(submaps_folder, str):
+        submaps_base_path = pathlib.Path(submaps_folder).parent
+    else:
+        raise ValueError("Check the path of submaps folder.")
 
     # load query, positive, negative scans; number of positive, negative scans; sequence; overlap threshold; overlaps
     anchor_index = batch[0]                             # current frame iddex
@@ -247,7 +257,7 @@ if __name__ == '__main__':
     img_folder_path = '/media/vectr/vectr3/Dataset/overlap_transformer/png_files/512'
     img_kf_folder_path = '/media/vectr/vectr3/Dataset/overlap_transformer/keyframes'
     overlaps_folder = '/media/vectr/vectr3/Dataset/overlap_transformer/gt_overlaps'
-    submaps_folder = '/media/vectr/vectr3/Dataset/overlap_transformer/submaps/euclidean'
+    submaps_folder = '/media/vectr/vectr3/Dataset/overlap_transformer/submaps/overlap'
     seqs =  ["bomb_shelter", "botanical_garden", "bruin_plaza", "court_of_sciences", "dickson_court", "geo_loop",
              "kerckhoff", "luskin", "royce_hall", "sculpture_garden"]
     overlaps_paths = [os.path.join(overlaps_folder, seq, 'overlaps_train.npz') for seq in seqs]
@@ -258,7 +268,7 @@ if __name__ == '__main__':
 
     overlaps, anchor_submaps, pos_neg_submaps = overlaps_submaps_loader(overlaps_paths, submaps_paths, shuffle=True)
 
-    anchor, pos, neg, _, _, _, _ = read_one_batch_overlaps_submap_one2n(img_folder_path, overlaps, pos_neg_submaps, 1000, 1, 32, 512, 10, 10,
-                                                                        device='cpu')
-    anchor_, pos_, neg_, _, _, _, _ = read_one_batch_overlaps_submap_n2n(img_folder_path, overlaps, anchor_submaps, pos_neg_submaps, 1000, 1, 32, 512, 10, 10,
+    # anchor, pos, neg, _, _, _, _ = read_one_batch_overlaps_submap_one2n(img_folder_path, submaps_folder, overlaps, pos_neg_submaps, 1000, 1, 32, 512, 10, 10,
+    #                                                                     device='cpu')
+    anchor_, pos_, neg_, _, _, _, _ = read_one_batch_overlaps_submap_n2n(img_folder_path, submaps_paths, overlaps, anchor_submaps, pos_neg_submaps, 0, 1, 32, 512, 10, 10,
                                                                          device='cpu')
