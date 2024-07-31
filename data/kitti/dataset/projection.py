@@ -39,6 +39,14 @@ class RangeProjection(object):
 
 
     def doProjection(self, pointcloud):
+        """
+        Project the 3D point cloud to 2D data with range projection
+        Returns:
+            proj_pointcloud: (numpy.ndarray) points used in the range image, in shape (proj_h, proj_w, channels)
+            proj_range: (numpy.ndarray) range image, in shape (proj_h, proj_w)
+            proj_idx: (numpy.ndarray) indices of points selected in original point cloud order, in shape (proj_h, proj_w)
+            proj_mask: (numpy.ndarray) range image mask with no empty points, in shape (proj_h, proj_w)
+        """
         # check input
         assert isinstance(pointcloud, np.ndarray), f'pointcloud should be numpy array, but got {type(pointcloud)}.'
 

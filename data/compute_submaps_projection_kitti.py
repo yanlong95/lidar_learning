@@ -1,7 +1,4 @@
 import os
-
-import matplotlib.pyplot as plt
-import numpy as np
 import tqdm
 import yaml
 import cv2
@@ -34,7 +31,7 @@ if __name__ == '__main__':
     data_root = '/Volumes/T7/Datasets/public_datasets/kitti/dataset/sequences'
     params_path = '/Users/yanlong/PycharmProjects/lidar_learning/data/kitti/dataset/config_kitti.yml'
     params = yaml.safe_load(open(params_path))
-    sequences = ["00"]
+    sequences = ['14', '15', '16', '17', '18', '19', '20', '21']
 
     for sequence in sequences:
         # src files

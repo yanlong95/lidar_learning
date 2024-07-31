@@ -2,7 +2,8 @@
 File to compute the overlaps between scans of a sequence of point clouds. The overlap is defined as ratio between the
 intersection over union of two point clouds (in 3d space).
 
-Note, due to the size of the sequence, the computation speed could be very slow.
+Note, due to the size of the sequence, the computation speed could be very slow. A separate c++ file is used to compute
+the overlaps matrices in real.
 """
 import os
 import numpy as np
