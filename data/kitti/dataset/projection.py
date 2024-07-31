@@ -56,7 +56,7 @@ class RangeProjection(object):
 
         # get angles of all points
         yaw = -np.arctan2(y, x)
-        pitch = np.arcsin(z / depth + 1e-8)
+        pitch = np.arcsin(z / (depth + 1e-8))
 
         # get projection in image coords
         proj_x = (yaw + abs(self.fov_left)) / self.fov_horizon      # normalized in [0, 1]

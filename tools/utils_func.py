@@ -48,6 +48,41 @@ def compute_top_k_keyframes_prediction(frames_descriptors, keyframes_descriptors
     pass
 
 
+def farthest_point_sampling(points, num_samples):
+    """
+    Select the farthest points from the input points.
+
+    Args:
+        points: (numpy.array) input points in shape (n, 3).
+        num_samples: (int) number of points to select.
+    Returns:
+        indices: (numpy.array) the indices of selected points in shape (num_points,).
+    """
+    num_points = points.shape[0]
+
+    # in case num_samples is larger than the number of points
+    if num_samples >= num_points:
+        return points
+
+    indices = np.zeros((num_samples,), dtype=int)
+    distances = np.ones((num_points,)) * float('inf')
+
+    # randomly select the first point
+    indices[0] = np.random.randint(0, num_points)
+    distances[indices[0]] = 0
+
+    for i in range(1, num_samples):
+        # compute the distance between each point and the selected points
+        dist = np.sum((points[:, :3] - points[indices[i-1], :3]) ** 2, axis=1)
+        distances = np.minimum(distances, dist)
+
+        # select the point with the maximum distance
+        indices[i] = np.argmax(distances)
+
+    samples = points[indices]
+    return samples
+
+
 def least_squares_points_alignment(src_points, dst_points, weights=None):
     """
     The function to compute translation matrix (T) to minimize the distance between the source points and the

@@ -67,8 +67,6 @@ class trainHandler():
         loss_avg = RunningAverage()
 
         # load all training pairs
-        # print(self.overlaps_folder)
-        # print(self.submaps_folder)
         overlaps_data, anchor_submaps, pos_neg_submaps = overlaps_submaps_loader(self.overlaps_folder,
                                                                                  self.submaps_folder, shuffle=True)
         num_scans = overlaps_data.shape[0]
@@ -151,13 +149,13 @@ class trainHandler():
                 # writer1.add_scalar("valid_losses_3", loss_valid_3, global_step=epoch)
                 # writer1.add_scalar("topn_rate_dist_3", topn_rate_dist_3, global_step=epoch)
 
-                # writer1.add_scalars("topn_rate", {'geo': topn_rate, 'royce': topn_rate_2,
-                #                                   'sculpture': topn_rate_3}, global_step=epoch)
-                # writer1.add_scalars("topn_rate_dist", {'geo': topn_rate_dist,
-                #                                        'royce': topn_rate_dist_2, 'sculpture': topn_rate_dist_3},
-                #                     global_step=epoch)
-                # writer1.add_scalars("valid_loss", {'geo': loss_valid, 'royce': loss_valid_2,
-                #                                    'sculpture': loss_valid_3}, global_step=epoch)
+                writer1.add_scalars("topn_rate", {'geo': topn_rate, 'royce': topn_rate_2,
+                                                  'sculpture': topn_rate_3}, global_step=epoch)
+                writer1.add_scalars("topn_rate_dist", {'geo': topn_rate_dist,
+                                                       'royce': topn_rate_dist_2, 'sculpture': topn_rate_dist_3},
+                                    global_step=epoch)
+                writer1.add_scalars("valid_loss", {'geo': loss_valid, 'royce': loss_valid_2,
+                                                   'sculpture': loss_valid_3}, global_step=epoch)
 
             # check if current model has the best validation rate
             if topn_rate >= best_val:

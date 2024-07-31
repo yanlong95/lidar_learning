@@ -32,20 +32,18 @@ if __name__ == '__main__':
     params_path = '/home/vectr/PycharmProjects/lidar_learning/configs/parameters.yml'
 
     config = yaml.safe_load(open(config_path))
-    # sequences = config['seqs']['all']
-    sequences = ["bomb_shelter", "botanical_garden", "bruin_plaza", "court_of_sciences", "dickson_court", "geo_loop"]
+    sequences = config['seqs']['all']
 
     for sequence in sequences:
         # src files
         pcd_files_path = os.path.join(config['data_root']['pcd_files'], sequence)
         # submaps_path = os.path.join(config['data_root']['submaps'], sequence)
         poses_path = os.path.join(config['data_root']['poses'], sequence, 'poses.txt')
-        submaps_paths = ["/media/vectr/vectr3/Dataset/overlap_transformer/submaps/overlap"]
-        # submaps_paths = ["/media/vectr/vectr3/Dataset/overlap_transformer/submaps/overlap_heuristic",
-        #                  "/media/vectr/vectr3/Dataset/overlap_transformer/submaps/overlap",
-        #                  "/media/vectr/vectr3/Dataset/overlap_transformer/submaps/euclidean_heuristic",
-        #                  "/media/vectr/vectr3/Dataset/overlap_transformer/submaps/euclidean"
-        #                  ]
+        submaps_paths = ["/media/vectr/vectr3/Dataset/overlap_transformer/submaps/overlap_heuristic",
+                         "/media/vectr/vectr3/Dataset/overlap_transformer/submaps/overlap",
+                         "/media/vectr/vectr3/Dataset/overlap_transformer/submaps/euclidean_heuristic",
+                         "/media/vectr/vectr3/Dataset/overlap_transformer/submaps/euclidean"
+                         ]
 
         for submaps_path in submaps_paths:
 
@@ -53,15 +51,15 @@ if __name__ == '__main__':
 
             # dst directory
             anchor_dst_path = os.path.join(submaps_path, 'anchor')
-            # pos_neg_dst_path = os.path.join(submaps_path, 'pos_neg')
-            # kf_dst_path = os.path.join(submaps_path, 'kf')
+            pos_neg_dst_path = os.path.join(submaps_path, 'pos_neg')
+            kf_dst_path = os.path.join(submaps_path, 'kf')
 
             if not os.path.exists(anchor_dst_path):
                 os.makedirs(anchor_dst_path)
-            # if not os.path.exists(pos_neg_dst_path):
-            #     os.makedirs(pos_neg_dst_path)
-            # if not os.path.exists(kf_dst_path):
-            #     os.makedirs(kf_dst_path)
+            if not os.path.exists(pos_neg_dst_path):
+                os.makedirs(pos_neg_dst_path)
+            if not os.path.exists(kf_dst_path):
+                os.makedirs(kf_dst_path)
 
             # load subamps matrices
             anchor, pos_neg, kf = load_submaps(submaps_path)
@@ -76,5 +74,5 @@ if __name__ == '__main__':
                 raise ValueError(f'Invalid sequence name: {sequence}')
 
             submaps_projection(anchor, pcd_files_path, poses_path, anchor_dst_path, params)
-            # submaps_projection(pos_neg, pcd_files_path, poses_path, pos_neg_dst_path, params)
-            # submaps_projection(kf, pcd_files_path, poses_path, kf_dst_path, params)
+            submaps_projection(pos_neg, pcd_files_path, poses_path, pos_neg_dst_path, params)
+            submaps_projection(kf, pcd_files_path, poses_path, kf_dst_path, params)
