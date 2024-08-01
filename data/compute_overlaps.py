@@ -123,7 +123,7 @@ def calculate_overlap(scan1_kd_tree, num_scan1_pts, scan2, params):
     # count number of overlap points
     for i in range(num_scan2_pts):
         k, idx, dist = search_nearest_points(scan1_kd_tree, scan2_pts[i], 1)
-        if dist[0] ** 2 <= params['odom']['maxCorrespondenceDistance']:
+        if dist[0] <= params['odom']['maxCorrespondenceDistance'] ** 2:
             num_correspondences += 1
 
     # overlap define as intersection over union of 2 point clouds
