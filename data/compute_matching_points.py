@@ -191,8 +191,8 @@ class PointMatcher:
             pc2_indices: (numpy.ndarray) indices of point cloud 2, in shape (n, ).
         """
         _, indices, _, masks = self.do_matching(pointcloud1, pointcloud2, pose1, pose2, num_neighbors=1)
-        pc1_indices = np.arange(len(indices))[masks]
-        pc2_indices = indices[masks, 0]
+        pc1_indices = indices[masks, 0]
+        pc2_indices = np.arange(len(indices))[masks]
         return pc1_indices, pc2_indices
 
     def matching_chamfer(self, pointcloud1, pointcloud2, pose1, pose2):
@@ -213,10 +213,11 @@ class PointMatcher:
 
 
 if __name__ == '__main__':
-    pcd_paths = load_files('/media/vectr/vectr3/Dataset/overlap_transformer/pcd_files/botanical_garden')
-    poses = load_poses('/media/vectr/vectr3/Dataset/overlap_transformer/poses/botanical_garden/poses.txt')
-    xyz, _ = load_xyz_rot('/media/vectr/vectr3/Dataset/overlap_transformer/poses/botanical_garden/poses.txt')
-    overlaps = load_overlaps('/media/vectr/vectr3/Dataset/overlap_transformer/overlaps/botanical_garden.bin')
+    # pcd_paths = load_files('/media/vectr/vectr3/Dataset/overlap_transformer/pcd_files/botanical_garden')
+    # poses = load_poses('/media/vectr/vectr3/Dataset/overlap_transformer/poses/botanical_garden/poses.txt')
+    # xyz, _ = load_xyz_rot('/media/vectr/vectr3/Dataset/overlap_transformer/poses/botanical_garden/poses.txt')
+    # overlaps = load_overlaps('/media/vectr/vectr3/Dataset/overlap_transformer/overlaps/botanical_garden.bin')
+    pcd_paths = load_files('/Volumes/T7/Datasets/public_datasets/kitti/dataset/sequences/00/pcd_files')
 
     idx1 = 450
     idx2 = 691
@@ -224,8 +225,8 @@ if __name__ == '__main__':
     pc1 = read_pc(pcd_paths[idx1])
     pc2 = read_pc(pcd_paths[idx2])
 
-    matcher = PointMatcher()
+    matcher = PointMatcher(pc_align=False)
     # overlap, indices, dists, masks = matcher.do_matching(pc1, pc2, poses[idx1], poses[idx2])
     # pc1_indices, pc2_indices = matcher.do_matching_indices(pc1, pc2, poses[idx1], poses[idx2])
 
-    matcher.matching_chamfer(pc1, pc2, poses[idx1], poses[idx2])
+    matcher.do_matching_indices(pc1, pc2)
