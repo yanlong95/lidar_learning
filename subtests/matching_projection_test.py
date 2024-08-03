@@ -22,7 +22,7 @@ if __name__ == '__main__':
     overlaps = load_overlaps('/media/vectr/vectr3/Dataset/overlap_transformer/overlaps/botanical_garden.bin')
 
     idx1 = 450
-    idx2 = 500
+    idx2 = 510
 
     pc1 = read_pc(pcd_paths[idx1])
     pc2 = read_pc(pcd_paths[idx2])
@@ -46,6 +46,8 @@ if __name__ == '__main__':
     matcher = PointMatcher()
     overlap, _, _, _ = matcher.do_matching(pc1, pc2, poses[idx1], poses[idx2], num_neighbors=1)
     pc1_indices, pc2_indices = matcher.do_matching_indices(pc1, pc2, poses[idx1], poses[idx2])
+    matcher.matching_chamfer(pc1, pc2, poses[idx1], poses[idx2])
+    print('------------------')
     print(overlap)
     print(len(pc1_indices))
     # print(len(np.unique(pc1_indices)))

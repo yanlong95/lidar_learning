@@ -19,12 +19,14 @@ from tools.fileloader import load_files, load_poses, read_pc, load_xyz_rot, load
 
 
 class PointMatcher:
-    def __init__(self, pc_remove_outliers=False, pc_align=True, min_range=-1.0, max_range=10000.0,
-                 max_correspondence_distance=0.5):
-        self.pc_remove_outliers = pc_remove_outliers
-        self.pc_align = pc_align
+    def __init__(self, remove_outliers=False, align=True, down_sample=False, min_range=-1.0, max_range=10000.0,
+                 voxel_size=0.5, max_correspondence_distance=0.5):
+        self.remove_outliers_ = remove_outliers
+        self.align_ = align
+        self.down_sample_ = down_sample
         self.min_range = min_range
         self.max_range = max_range
+        self.voxel_size = voxel_size
         self.max_correspondence_distance = max_correspondence_distance
 
     def remove_outliers(self, pc, min_range=-1.0, max_range=10000.0):
@@ -58,6 +60,18 @@ class PointMatcher:
             pose = np.vstack((pose, [0.0, 0.0, 0.0, 1.0]))
 
         return pc.transform(pose)
+
+    def down_sample(self, pc, voxel_size=0.5):
+        """
+        Down sample a point cloud.
+
+        Args:
+            pc: (o3d.geometry.PointCloud) o3d point cloud.
+            voxel_size: (float) voxel size.
+        Returns:
+            pc: (o3d.geometry.PointCloud) down sampled point cloud.
+        """
+        return pc.voxel_down_sample(voxel_size=voxel_size)
 
     def kd_tree(self, pc):
         """
@@ -102,9 +116,10 @@ class PointMatcher:
         [k, idx, dists] = pc_tree.search_radius_vector_3d(point, radius)
         return k, idx, dists
 
-    def calculate_overlap(self, scan1_kd_tree, num_scan1_pts, scan2, max_correspondence_distance=0.5, num_neighbors=100):
+    def search_neighbors_nearest(self, scan1_kd_tree, num_scan1_pts, scan2, max_correspondence_distance=0.5,
+                                 num_neighbors=100):
         """
-        Compute the overlap between two 2 point clouds.
+        Search the nearest num_neighbors neighbors.
 
         Args:
             scan1_kd_tree: (o3d.geometry.KDTreeFlann) kd tree of current point cloud.
@@ -114,6 +129,9 @@ class PointMatcher:
             num_neighbors: (int) the number of neighbors to search.
         Returns:
             intersection_over_union: (double) the overlap ratio (0 ~ 1).
+            indices_correspondences: (numpy.ndarray) indices of correspondences, in shape (n, num_neighbors).
+            dists_correspondences: (numpy.ndarray) distances of correspondences, in shape (n, num_neighbors).
+            masks_correspondences: (numpy.ndarray) masks of correspondences, in shape (n, ).
         """
         scan2_pts = scan2.points
         num_scan2_pts = len(scan2_pts)
@@ -136,6 +154,25 @@ class PointMatcher:
         masks_correspondences = dists_correspondences[:, 0] <= max_correspondence_distance
         return intersection_over_union, indices_correspondences, dists_correspondences, masks_correspondences
 
+    def search_neighbors_radius(self, scan1_kd_tree, num_scan1_pts, scan2, radius, max_num_neighbors=100):
+        """
+        search the neighbors within a radius.
+
+        Args:
+            scan1_kd_tree: (o3d.geometry.KDTreeFlann) kd tree of current point cloud.
+            num_scan1_pts: (int) number of points in scan1_kd_tree.
+            scan2: (o3d.geometry.PointCloud) query point cloud scan.
+            radius: (double) maximum searching radius.
+            max_num_neighbors: (int) the maximum number of neighbors to search.
+
+        Returns:
+            intersection_over_union: (double) the overlap ratio (0 ~ 1).
+            indices_correspondences: (numpy.ndarray) indices of correspondences, in shape (n, num_neighbors).
+            dists_correspondences: (numpy.ndarray) distances of correspondences, in shape (n, num_neighbors).
+            masks_correspondences: (numpy.ndarray) masks of correspondences, in shape (n, ).
+        """
+        pass
+
     def do_matching(self, pointcloud1, pointcloud2, pose1=None, pose2=None, num_neighbors=100):
         """
         Find the matching points between two point clouds.
@@ -147,6 +184,7 @@ class PointMatcher:
             pose2: (numpy.ndarray) pose of point cloud 2. If None, no alignment is performed.
             num_neighbors: (int) the number of neighbors to search, default is 100.
         """
+        # convert point clouds to o3d point clouds
         if isinstance(pointcloud1, np.ndarray):
             pc1 = o3d.geometry.PointCloud()
             pc1.points = o3d.utility.Vector3dVector(pointcloud1)
@@ -163,18 +201,25 @@ class PointMatcher:
         else:
             raise ValueError('Invalid point cloud type (only support numpy and o3d.geometry.PointCloud).')
 
-        if self.pc_remove_outliers:
+        # remove outliers
+        if self.remove_outliers_:
             pc1 = self.remove_outliers(pc1, self.min_range, self.max_range)
             pc2 = self.remove_outliers(pc2, self.min_range, self.max_range)
 
-        if self.pc_align and pose1 is not None:
+        # align point clouds
+        if self.align_ and pose1 is not None:
             pc1 = self.align_points(pc1, pose1)
-        if self.pc_align and pose2 is not None:
+        if self.align_ and pose2 is not None:
             pc2 = self.align_points(pc2, pose2)
 
+        # down sample point clouds
+        if self.down_sample_:
+            pc1 = self.down_sample(pc1, self.voxel_size)
+            pc2 = self.down_sample(pc2, self.voxel_size)
+
         pc1_tree = self.kd_tree(pc1)
-        overlap, indices, dists, masks = self.calculate_overlap(pc1_tree, len(pc1.points), pc2,
-                                                                self.max_correspondence_distance, num_neighbors)
+        overlap, indices, dists, masks = self.search_neighbors_nearest(pc1_tree, len(pc1.points), pc2,
+                                                                       self.max_correspondence_distance, num_neighbors)
         return overlap, indices, dists, masks
 
     def do_matching_indices(self, pointcloud1, pointcloud2, pose1=None, pose2=None):
@@ -205,28 +250,32 @@ class PointMatcher:
             pose1: (numpy.ndarray) pose of point cloud 1.
             pose2: (numpy.ndarray) pose of point cloud 2.
         """
-        overlap1, indices1, dists1, masks1 = self.do_matching(pointcloud1, pointcloud2, pose1, pose2)
-        overlap2, indices2, dists2, masks2 = self.do_matching(pointcloud2, pointcloud1, pose2, pose1)
+        overlaps1, indices1, dists1, masks1 = self.do_matching(pointcloud1, pointcloud2, pose1, pose2)
+        overlaps2, indices2, dists2, masks2 = self.do_matching(pointcloud2, pointcloud1, pose2, pose1)
+        indices1_src, indices1_dst = self.do_matching_indices(pointcloud1, pointcloud2, pose1, pose2)
+        indices2_src, indices2_dst = self.do_matching_indices(pointcloud2, pointcloud1, pose2, pose1)
 
-        print(overlap1)
-        print(overlap2)
+        print(f'overlaps: {overlaps1}, reverse overlaps: {overlaps2}')
+        print(f'number of points in KDtree: {len(np.unique(indices1_src))}, number of points in searching cloud: {len(np.unique(indices1_dst))}')
+        print(f'number of points in KDtree: {len(np.unique(indices2_src))}, number of points in searching cloud: {len(np.unique(indices2_dst))}')
+
 
 
 if __name__ == '__main__':
-    # pcd_paths = load_files('/media/vectr/vectr3/Dataset/overlap_transformer/pcd_files/botanical_garden')
-    # poses = load_poses('/media/vectr/vectr3/Dataset/overlap_transformer/poses/botanical_garden/poses.txt')
-    # xyz, _ = load_xyz_rot('/media/vectr/vectr3/Dataset/overlap_transformer/poses/botanical_garden/poses.txt')
-    # overlaps = load_overlaps('/media/vectr/vectr3/Dataset/overlap_transformer/overlaps/botanical_garden.bin')
-    pcd_paths = load_files('/Volumes/T7/Datasets/public_datasets/kitti/dataset/sequences/00/pcd_files')
+    pcd_paths = load_files('/media/vectr/vectr3/Dataset/overlap_transformer/pcd_files/botanical_garden')
+    poses = load_poses('/media/vectr/vectr3/Dataset/overlap_transformer/poses/botanical_garden/poses.txt')
+    xyz, _ = load_xyz_rot('/media/vectr/vectr3/Dataset/overlap_transformer/poses/botanical_garden/poses.txt')
+    overlaps = load_overlaps('/media/vectr/vectr3/Dataset/overlap_transformer/overlaps/botanical_garden.bin')
 
     idx1 = 450
-    idx2 = 691
+    idx2 = 591
 
     pc1 = read_pc(pcd_paths[idx1])
     pc2 = read_pc(pcd_paths[idx2])
 
-    matcher = PointMatcher(pc_align=False)
+    matcher = PointMatcher(down_sample=True, voxel_size=0.05)
     # overlap, indices, dists, masks = matcher.do_matching(pc1, pc2, poses[idx1], poses[idx2])
     # pc1_indices, pc2_indices = matcher.do_matching_indices(pc1, pc2, poses[idx1], poses[idx2])
 
-    matcher.do_matching_indices(pc1, pc2)
+    # matcher.matching_chamfer(pc1, pc2, poses[idx1], poses[idx2])
+
