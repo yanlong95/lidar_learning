@@ -50,37 +50,37 @@ if __name__ == '__main__':
     print('------------------')
     print(overlap)
     print(len(pc1_indices))
-    # print(len(np.unique(pc1_indices)))
-    # print(len(np.unique(pc2_indices)))
-    #
-    # projector = projection.RangeProjection(fov_up=22.5, fov_down=-22.5, proj_h=32, proj_w=512)
-    # proj_pc1, proj_img1, proj_idx1, proj_mask1 = projector.doProjection(pc1)
-    # proj_pc2, proj_img2, proj_idx2, proj_mask2 = projector.doProjection(pc2)
-    #
-    # mask1 = np.isin(proj_idx1, pc1_indices)
-    # mask2 = np.isin(proj_idx2, pc2_indices)
-    # mask3 = mask1 * mask2
-    #
-    # img1_masked = proj_img1 * mask3
-    # img2_masked = proj_img2 * mask3
-    #
-    # print(overlap)
-    # print('-----------------')
-    # print(len(pc1_indices))
-    # print(np.sum(proj_img1 > 0))
-    # print('-----------------')
-    # print(len(pc2))
-    # print(len(pc2_indices))
-    # print(np.sum(proj_img2 > 0))
-    # print('-----------------')
-    # print(np.sum(mask1))
-    # print(np.sum(mask2))
-    # print(np.sum(mask3))
-    #
-    # fig, [ax1, ax2, ax3, ax4] = plt.subplots(4, 1)
-    # ax1.imshow(proj_img1)
-    #
-    # ax2.imshow(proj_img2)
-    # ax3.imshow(img1_masked)
-    # ax4.imshow(mask2)
-    # plt.show()
+    print(len(np.unique(pc1_indices)))
+    print(len(np.unique(pc2_indices)))
+
+    projector = projection.RangeProjection(fov_up=22.5, fov_down=-22.5, proj_h=32, proj_w=512)
+    proj_pc1, proj_img1, proj_idx1, proj_mask1 = projector.doProjection(pc1)
+    proj_pc2, proj_img2, proj_idx2, proj_mask2 = projector.doProjection(pc2)
+
+    mask1 = np.isin(proj_idx1, pc1_indices)
+    mask2 = np.isin(proj_idx2, pc2_indices)
+    mask3 = mask1 * mask2
+
+    img1_masked = proj_img1 * mask3
+    img2_masked = proj_img2 * mask3
+
+    print(overlap)
+    print('-----------------')
+    print(len(pc1_indices))
+    print(np.sum(proj_img1 > 0))
+    print('-----------------')
+    print(len(pc2))
+    print(len(pc2_indices))
+    print(np.sum(proj_img2 > 0))
+    print('-----------------')
+    print(np.sum(mask1))
+    print(np.sum(mask2))
+    print(np.sum(mask3))
+
+    fig, [ax1, ax2, ax3, ax4] = plt.subplots(4, 1)
+    ax1.imshow(proj_img1)
+
+    ax2.imshow(proj_img2)
+    ax3.imshow(img1_masked)
+    ax4.imshow(mask2)
+    plt.show()

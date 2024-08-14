@@ -1,0 +1,23 @@
+newer_college_2020:
+  rate: 10
+  fov_up: 16.6
+  fov_down: -16.6
+  channels: 64
+  max_range: 120.0
+
+newer_college_2021:
+  rate: 10
+  fov_up: 45.0
+  fov_down: -45.0
+  channels: 128
+  max_range: 50.0
+
+ucla:
+  rate: 20
+
+ral:
+  rate: 20
+
+kitti:
+  rate: 10
+

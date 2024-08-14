@@ -8,8 +8,6 @@ import numpy as np
 import open3d as o3d
 import cv2
 
-# from keyframe_detector.modules.overlap_transformer_32 import featureExtracter
-
 
 def load_keyframes_descriptors():
     pass
