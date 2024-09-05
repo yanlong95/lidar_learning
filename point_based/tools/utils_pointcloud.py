@@ -45,6 +45,33 @@ def compute_overlap(
     return overlap, indices, mask_query, distances
 
 
+def transform_point_cloud(
+        point_cloud: np.ndarray,
+        transformation: np.ndarray,
+        inverse: bool = False
+):
+    """
+    Transform a point cloud from local frame to global frame.
+
+    Args:
+        point_cloud: (np.ndarray) point cloud in shape (n, 3).
+        transformation: (np.ndarray) transformation matrix in shape (4, 4) or (3, 4).
+        inverse: (bool) if True, use the inverse transformation.
+
+    Returns:
+        transformed_point_cloud: (np.ndarray) transformed point cloud in shape (n, 3).
+    """
+    if transformation.shape == (3, 4):
+        transformation = np.vstack((transformation, np.array([0, 0, 0, 1])))
+
+    if inverse:
+        transformation = np.linalg.inv(transformation)
+
+    point_cloud = np.hstack((point_cloud, np.ones((point_cloud.shape[0], 1))))
+    transformed_point_cloud = np.dot(transformation, point_cloud.T).T
+    return transformed_point_cloud[:, :3]
+
+
 if __name__ == '__main__':
     scan1 = np.random.rand(10000, 3) * 50
     scan2 = np.random.rand(10000, 3) * 50
