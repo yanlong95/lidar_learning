@@ -14,7 +14,7 @@ def add_2d_scatter(ax, points, points_color, title=None, alpha=0.5):
 
 
 if __name__ == '__main__':
-    descriptors_path = '/home/vectr/Desktop/temp_desc/parkland_mount3.txt'
+    descriptors_path = '/home/vectr/Desktop/temp_desc/parkland_mount.txt'
     descriptors = load_descriptors(descriptors_path)
 
     t_sne = TSNE(
